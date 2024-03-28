@@ -4,11 +4,14 @@
   "description": "Support for WGS LUI Syntax",
   "version": "0.0.1",
   "icon": "icon.png",
-  "repository": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hrsantiago/lui_syntax"
+  },
   "engines": {
     "vscode": "^1.0.0"
   },
-  "categories": ["Languages"],
+  "categories": ["Programming Languages"],
   "contributes": {
     "languages": [{
       "id": "lui",
