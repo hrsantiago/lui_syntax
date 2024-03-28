@@ -1,0 +1,34 @@
+{
+  "name": "lui-language",
+  "displayName": "LUI Language",
+  "description": "Support for WGS LUI Syntax",
+  "version": "0.0.1",
+  "icon": "icon.png",
+  "repository": {},
+  "engines": {
+    "vscode": "^1.0.0"
+  },
+  "categories": ["Languages"],
+  "contributes": {
+    "languages": [{
+      "id": "lui",
+      "extensions": [".lui"],
+      "aliases": ["LUI", "lui"]
+    }],
+    "grammars": [{
+      "language": "lui",
+      "scopeName": "source.lui",
+      "path": "./lui.tmLanguage.json"
+    }],
+    "configuration": {
+      "type": "object",
+      "title": "LUI configuration",
+      "properties": {
+        "lui.fileExtensions": {
+          "default": [".lui"],
+          "description": "Define additional file extensions."
+        }
+      }
+    }
+  }
+}

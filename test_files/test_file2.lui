@@ -1,0 +1,459 @@
+MDIWindow < UIMDIWindow
+  size: 50sp 50sp
+  //focusable: false
+  padding-top: 1sp
+  image-source: /assets/images_ui/square_border
+  image-align: none
+  image-border: 2
+  image-repeated: true
+  image-offset-y: 1sp
+  background-color: pallet-a-4-heavy
+  background-offset-y: 1sp
+  close-locked: false
+  @slot onSetup: self:setContentMinimumHeight(dpunittopixels('62sp'))
+  @slot onDoubleClick: |
+    function(self, mousePos, mouseButton)
+      if mouseButton == MouseButton.Left and self.headerWidget and self.headerWidget:containsPoint(mousePos) then
+        self:toggleMinimize()
+      end
+    end
+
+  VerticalScrollBar
+    id: contentsScrollBar
+    anchors.top: header.bottom
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    margin: 2sp 4sp 4sp 4sp
+    step: 14sp
+    pixels-scroll: true
+
+    $!on:
+      width: 0sp
+
+  ResizeBorder
+    id: bottomResizeBorder
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    !minimum: dpunittopixels('62sp')
+    bound-widget: parent
+    bound-edge: bottom
+
+  ResizeBorder
+    id: rightResizeBorder
+    anchors.top: parent.top
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    !minimum: dpunittopixels('204sp')
+    bound-widget: parent
+    bound-edge: right
+
+  ResizeBorder
+    id: topResizeBorder
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    !minimum: dpunittopixels('62sp')
+    bound-widget: parent
+    bound-edge: top
+
+  ResizeBorder
+    id: leftResizeBorder
+    anchors.top: parent.top
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    !minimum: dpunittopixels('204sp')
+    bound-widget: parent
+    bound-edge: left
+
+  CombinedResizeBorder
+    id: bottomRightResizeBorder
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    bound-vertical-border: bottomResizeBorder
+    bound-horizontal-border: rightResizeBorder
+
+  CombinedResizeBorder
+    id: topRightResizeBorder
+    anchors.top: parent.top
+    anchors.right: parent.right
+    bound-vertical-border: topResizeBorder
+    bound-horizontal-border: rightResizeBorder
+
+  CombinedResizeBorder
+    id: bottomLeftResizeBorder
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    bound-vertical-border: bottomResizeBorder
+    bound-horizontal-border: leftResizeBorder
+
+  CombinedResizeBorder
+    id: topLeftResizeBorder
+    anchors.top: parent.top
+    anchors.left: parent.left
+    bound-vertical-border: topResizeBorder
+    bound-horizontal-border: leftResizeBorder
+
+MDIWindowHeader < UIWidget
+  id: header
+  !height: math.max(18, math.round(dpunittopixels('11sp')) * 2)
+  anchors.top: parent.top
+  anchors.right: parent.right
+  anchors.left: parent.left
+  margin: 3sp
+  phantom: true
+  icon-offset: 2sp 0sp
+  !icon-width: math.round(dpunittopixels('12sp')) * 2
+  !icon-height: math.round(dpunittopixels('12sp')) * 2
+  icon-align: left
+  font-auto-resize: true
+  font-size: 1em
+  font-style: rounded
+  text-align: left
+  text-padding-top: 0sp
+  text-padding-left: 28sp
+  !text-padding-right: dpunittopixels('54sp') + 2
+  @slot onFirstDraw: |
+    -- hack to fix align with small font, keep without sp
+    if self:getFontSize() <= 12 then
+      self:setTextOffsetY(2)
+    end
+    emit(self, 'onTextChange')
+
+  $changed:
+    !text-padding-right: dpunittopixels('75sp') + 2
+
+  CloseIconButton
+    id: close
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.right: parent.right
+    margin-right: 2sp
+    *!mobile size: 16sp 16sp
+    *mobile size: 20sp 16sp
+    icon-source: @FontAwesome-blackrounded-18sp-xf00d
+
+  ToggleIconButton
+    id: minimize
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.right: prev.left
+    *!mobile margin-right: 2sp
+    *!mobile size: 16sp 16sp
+    *mobile margin-right: 8sp
+    *mobile size: 20sp 16sp
+    icon-source: @FontAwesome-blackrounded-18sp-xf0d7
+    rotation: 0
+    !@transition rotation: MDIWINDOW_MINIMIZE_TIME .. 'ms'
+
+    $on:
+      rotation: 90
+
+  ToggleIconButton
+    id: lock
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.right: prev.left
+    margin-right: 2sp
+    size: 16sp 16sp
+    icon-source: @FontAwesome-blackrounded-14sp-xf09c
+    rotation: 0
+    *mobile visible: false
+
+    $on:
+      icon-source: @FontAwesome-blackrounded-14sp-xf023
+    $checked:
+      icon-color: pallet-red-idle
+      rotation: 1
+      *accelerated @animation rotation: 200ms -1 alternate
+        - -10
+        - 10
+
+  IconButton
+    id: options
+    visible: false
+    anchors.verticalCenter: parent.verticalCenter
+    *!mobile anchors.right: prev.left
+    *!mobile margin-right: 5sp
+    *!mobile size: 16sp 16sp
+    *mobile anchors.right: minimize.left
+    *mobile margin-right: 8sp
+    *mobile size: 20sp 16sp
+    icon-source: @FontAwesome-blackrounded-16sp-xf0c9
+    @slot onVisibilityChange: |
+      function(self, visible)
+        self:getParent():setChanged(visible)
+      end
+
+    $on:
+      icon-source: @FontAwesome-blackrounded-16sp-xf0c9
+
+MDIHeaderOptions < IconButton
+  size: 16sp 16sp
+  anchors.top: parent.top
+  anchors.right: prev.left
+  margin: 2sp
+  icon-source: @FontAwesome-blackrounded-17sp-xf0c9
+
+  $on:
+    color: text-light-pressed
+
+MDIWindowBody < ScrollablePanel
+  id: contentsPanel
+  anchors.fill: parent
+  anchors.top: header.bottom
+  anchors.right: contentsScrollBar.left
+  margin: 0 1sp 2sp 2sp
+  vertical-scrollbar: contentsScrollBar
+
+MDIDock < UIMDIDock
+
+MDIWindowBorderless < UIMDIWindow.flat
+  size: 50sp 50sp
+  focusable: false
+  padding: 1sp
+  background-offset-y: 1sp
+  @slot onSetup: self:setContentMinimumHeight(dpunittopixels('60sp'))
+
+  VerticalScrollBar
+    id: contentsScrollBar
+    anchors.top: header.bottom
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    margin: 4sp
+    step: 14sp
+    pixels-scroll: true
+
+    $!on:
+      width: 0sp
+
+PreviewItem < UIItem
+  size: 32sp 32sp
+  focusable: false
+  virtual: true
+  phantom: true
+  free-position: true
+  item-show-count: false
+
+  $on:
+    size: 24sp 24sp
+  @transition width: 200ms
+  @transition height: 200ms
+
+CreatureButton < UICreatureButton
+  margin: 0 10sp 0 10sp
+  padding-bottom: 5sp
+  layout: anchor
+    fit-vertical-children: true
+
+  UIWidget
+    id: circle
+    anchors.fill: creature
+    image-source: /assets/images_ui/game/circle
+    image-color: alpha
+    phantom: true
+
+  UIOutfit
+    id: creature
+    size: 24sp 24sp
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    phantom: true
+
+  UIWidget
+    id: spacer
+    width: 5sp
+    anchors.left: creature.right
+    anchors.top: creature.top
+    phantom: true
+
+  UIWidget
+    id: skull
+    height: 11sp
+    anchors.left: spacer.right
+    anchors.top: spacer.top
+    phantom: true
+
+  UIWidget
+    id: emblem
+    height: 11sp
+    anchors.left: skull.right
+    anchors.top: creature.top
+    phantom: true
+
+  Label
+    id: label
+    anchors.left: emblem.right
+    anchors.top: parent.top
+    color: #888888
+    margin-left: 2sp
+    phantom: true
+    font-size: 0.8em
+    font-style: rounded
+
+  BorderedProgressBar
+    id: lifeBar
+    height: 8sp
+    anchors.left: spacer.right
+    anchors.right: parent.right
+    anchors.top: label.bottom
+    margin-top: 1sp
+    padding: 2sp
+    image-border-left: 0
+    image-border-right: 0
+    image-repeated: false
+    overlay-border-left: 0
+    overlay-border-right: 0
+    phantom: true
+
+    ThinProgressBarOverlay
+
+TimeoutCircle < UIProgressCircle
+  size: 32sp 32sp
+  opacity: 1
+  phantom: true
+  percent: 100
+  show-progress: false
+  vector-draw-function: |
+    function(self, x, y, w, h)
+      local vg = g_vgPainter
+      local cx = x + w/2
+      local cy = y + h/2
+      local progress = math.max(self:getProgress(),0.01)
+      local r = math.min(w,h)*0.4
+
+      vg.beginPath()
+      vg.circle(cx,cy,r)
+      vg.strokeColor('#0008')
+      vg.strokeWidth(self.strokeWidth)
+      vg.stroke()
+
+      local a0 = 0 - math.pi/2
+      local a1 = a0 + 2*math.pi*progress
+      vg.beginPath()
+      vg.arc(cx,cy,r,a0,a1,2)
+      vg.strokeColor('#fff')
+      vg.strokeWidth(self.strokeWidth-2)
+      vg.stroke()
+    end
+  @field strokeWidth: 10
+
+  $!on:
+    opacity: 0
+  @transition opacity: 300ms
+
+PokemonIcon < UIWidget
+  size: 24sp 24sp
+  image-color: #bbb
+  tooltip-delay: 0
+
+  $hover:
+    image-color: #fff
+  @transition image-color: 0.2s cubic ease-out
+
+PokemonFlag < PokemonIcon
+  image-source: /assets/images_ui/game/flags
+  image-clip: 0 0 24 24
+
+PokemonType < PokemonIcon
+  image-source: /assets/images_ui/game/types
+  @field baseImageClip: '%d 0 24 24'
+
+PokemonEffect < PokemonIcon
+  image-source: /assets/images_ui/game/effects
+  @field baseImageClip: '%d 0 24 24'
+
+PokemonElement < PokemonIcon
+  image-source: /assets/images_ui/game/elements
+  @field baseImageClip: '0 %d 24 24'
+
+MovePopup < UIMovePopup.phantom
+  anchors.fill: none
+  visible: false
+  padding: 20sp
+  background-color: pallet-a-4-heavier
+  image-source: /assets/images_ui/square_border
+  image-border: 2
+  image-repeated: true
+  layout: anchor
+    fit-children: true
+
+  Panel
+    id: infoPanel
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    padding-right: 5sp
+    layout: anchor
+      fit-children: true
+
+    Panel
+      id: textPanel
+      anchors.top: parent.top
+      anchors.right: parent.right
+      layout: anchor
+        fit-children: true
+
+      ResizableLabel
+        id: name
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: pallet-green-idle
+        font-style: bold
+
+      ResizableLabel.h6
+        id: level
+        anchors.top: prev.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: text-light-inactive
+
+        $checked:
+          color: pallet-red-idle
+
+      ResizableLabel.h6
+        id: cooldown
+        anchors.top: prev.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        color: text-light-inactive
+
+    UIItem
+      id: icon
+      size: 32sp 32sp
+      anchors.verticalCenter: prev.verticalCenter
+      anchors.right: textPanel.left
+      margin-top: 1sp
+      margin-right: 10sp
+      virtual: true
+
+  ResizableLabel.h6
+    id: desc
+    maximum-width: 230sp
+    anchors.top: prev.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 10sp
+    color: text-light-inactive
+    text-align: center
+    text-wrap: true
+    @slot onTextChange: |
+      function(self, text)
+        if text == '' then
+          self:setTextHorizontalAutoResize(true)
+        elseif self:getTextSize().width > dpunittopixels('230sp') then
+          self:setTextHorizontalAutoResize(false)
+          self:setWidth('230sp')
+        end
+      end
+
+  Panel
+    id: moveProps
+    height: 24sp
+    anchors.top: prev.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 10sp
+    layout: horizontalBox
+      spacing: 5sp
+      fit-children: true
+
+  ItalicLabel.h6
+    id: tip
+    !text: '[' .. tr('Hold shift to inspect') .. ']'
+    anchors.top: prev.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 10sp
+    text-auto-resize: true

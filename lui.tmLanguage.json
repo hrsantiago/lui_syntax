@@ -1,0 +1,165 @@
+{
+    "name": "LUI",
+    "patterns": [
+        {
+            "name": "punctuation.definition.bracket",
+            "match": "[\\[\\]{}()]"
+        },
+        {
+            "name": "constant.numeric",
+            "match": "\\b\\d+\\.?\\d*\\b"
+        },
+        {
+            "name": "comment.line",
+            "begin": "//",
+            "end": "$"
+        },
+        {
+            "name": "comment.line",
+            "begin": "--",
+            "end": "$"
+        },
+        {
+            "name": "string.quoted.single",
+            "begin": "'",
+            "end": "'"
+        },
+        {
+            "name": "string.quoted.double",
+            "begin": "\"",
+            "end": "\""
+        },
+        {
+            "name": "constant.language.lua",
+            "match": "\\.{3}"
+        },
+        {
+            "name": "variable.parameter.function",
+            "match": "(?<=\\()[^'\"\\)]*(?=\\))"
+        },
+        {
+            "name": "variable.parameter.function.lua",
+            "match": "(?<=function\\()([^\\)]+)"
+        },
+        {
+            "name": "string.quoted.single",
+            "match": "'[^']*'"
+        },
+        {
+            "name": "string.quoted.double",
+            "match": "\"[^\"]*\""
+        },
+        {
+            "name": "support.variable.id",
+            "match": "(?<=id:\\s*)\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        },
+
+        {
+            "name": "entity.name.tag.equations",
+            "match": "\\b(linear|quadratic|cubic|quartic|quintic|sinusoidal|exponential|circular|bounce|back|elastic|ease-in|ease-out|ease-inout)\\b"
+        },
+        {
+            "name": "entity.name.tag.anchors",
+            "match": "(?<=anchors\\.[A-Za-z][A-Za-z0-9_]*:\\s*)\\b[A-Za-z][A-Za-z0-9_.]*\\b"
+        },
+        {
+            "name": "entity.name.tag.align",
+            "match": "(?<=align:\\s*)\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        },
+        {
+            "name": "entity.name.tag.layout",
+            "match": "(?<=layout:\\s*)\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        },
+
+        {
+            "name": "constant.language.boolean",
+            "match": "\\b(true|false)\\b"
+        },
+        {
+            "name": "constant.numeric",
+            "match": "\\b\\d+(?=(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b)"
+        },
+        {
+            "name": "keyword.control.unit",
+            "match": "(?<=\\d)(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
+        },
+        {
+            "name": "keyword.control.unit",
+            "match": "(?<=: )\\b(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
+        },
+        {
+            "name": "keyword.control.state",
+            "match": "\\$!?\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        },
+        {
+            "name": "keyword.operator",
+            "match": "(\\.{2}|!|\\$|\\%|\\*)"
+        },
+        {
+            "name": "keyword.operator",
+            "match": "(\\s+-\\s+)|(^-\\s+)|(\\s+-$)|(^-$)|(-(?=\\d))"
+        },
+        {
+            "name": "keyword.control.lua",
+            "match": "\\b(if|else|elseif|then|end|and|for|do|while|repeat|until|break|return|local|function)\\b"
+        },
+        {
+            "name": "keyword.operator.comparison",
+            "match": "(?<=\\b(if|elseif|while|until)\\b.*)(>|<|>=|<=|==|~=)"
+        },
+        {
+            "name": "constant.numeric.float",
+            "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+            "name": "constant.numeric.integer",
+            "match": "\\b\\d+\\b"
+        },
+        {
+            "name": "constant.numeric.fraction",
+            "match": "\\b\\d+/\\d+\\b"
+        },
+        {
+            "name": "constant.numeric",
+            "match": "\\b\\d+(\\.\\d+)?s\\b"
+        },
+        {
+            "name": "string.unquoted.path",
+            "match": "(?<=:\\s*)[A-Za-z0-9_/]*\\/[A-Za-z0-9_/]*"
+        },
+        {
+            "name": "variable.other.table",
+            "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\.)"
+        },
+        {
+            "name": "support.function",
+            "match": "(?<=\\.)\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\()"
+        },
+        {
+            "name": "support.function",
+            "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\()"
+        },
+        {
+            "name": "storage.type.command",
+            "match": "@[\\w-]+"
+        },
+        {
+            "name": "support.class",
+            "match": "^\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        },
+        {
+            "name": "support.class",
+            "match": "(?<=<\\s)\\b[A-Za-z][A-Za-z0-9_]*\\b"
+        },
+        {
+            "name": "entity.name.class",
+            "match": "^\\s*[A-Z][A-Za-z0-9_.]*\\s*$"
+        },
+
+        {
+            "name": "entity.name.tag.others",
+            "match": "(?<=:\\s*)\\b[A-Za-z][A-Za-z0-9_.-]*\\b"
+        }
+    ],
+    "scopeName": "source.lui"
+  }
