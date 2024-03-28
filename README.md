@@ -20,4 +20,4 @@ If you have suggestions for improving this extension, please open an issue or a 
 
 ## License
 
-This extension is licensed under the [MIT License](link-to-license-file).
+This extension is licensed under the [MIT License](https://github.com/hrsantiago/lui_syntax/blob/master/LICENSE.md).
