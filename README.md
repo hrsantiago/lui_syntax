@@ -4,7 +4,7 @@ This extension provides support for LUI syntax on VS Code, providing syntax high
 
 ## Installation
 
-You can install this extension from the [VS Code Marketplace](link-to-your-extension-on-the-marketplace).
+You can install this extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Pedrilsk.lui-language).
 
 ## Usage
 

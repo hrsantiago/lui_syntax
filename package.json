@@ -2,8 +2,9 @@
   "name": "lui-language",
   "displayName": "LUI Language",
   "description": "Support for WGS LUI Syntax",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "icon": "icon.png",
+  "publisher": "Pedrilsk",
   "repository": {
     "type": "git",
     "url": "https://github.com/hrsantiago/lui_syntax"

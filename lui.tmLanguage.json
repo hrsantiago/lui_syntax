@@ -20,14 +20,100 @@
             "end": "$"
         },
         {
-            "name": "string.quoted.single",
             "begin": "'",
-            "end": "'"
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.begin.lua"
+                }
+            },
+            "end": "'[ \\t]*|(?=\\n)",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.end.lua"
+                }
+            },
+            "name": "string.quoted.single.lua",
+            "patterns": [
+                {
+                    "include": "#escaped_char"
+                }
+            ]
         },
         {
-            "name": "string.quoted.double",
             "begin": "\"",
-            "end": "\""
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.begin.lua"
+                }
+            },
+            "end": "\"[ \\t]*|(?=\\n)",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.end.lua"
+                }
+            },
+            "name": "string.quoted.double.lua",
+            "patterns": [
+                {
+                    "include": "#escaped_char"
+                }
+            ]
+        },
+        {
+            "begin": "`",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.begin.lua"
+                }
+            },
+            "end": "`[ \\t]*|(?=\\n)",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.end.lua"
+                }
+            },
+            "name": "string.quoted.double.lua"
+        },
+        {
+            "begin": "(?<=\\.cdef)\\s*(\\[(=*)\\[)",
+            "beginCaptures": {
+                "0": {
+                    "name": "string.quoted.other.multiline.lua"
+                },
+                "1": {
+                    "name": "punctuation.definition.string.begin.lua"
+                }
+            },
+            "contentName": "meta.embedded.lua",
+            "end": "(\\]\\2\\])[ \\t]*",
+            "endCaptures": {
+                "0": {
+                    "name": "string.quoted.other.multiline.lua"
+                },
+                "1": {
+                    "name": "punctuation.definition.string.end.lua"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.c"
+                }
+            ]
+        },
+        {
+            "begin": "(?<!--)\\[(=*)\\[",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.begin.lua"
+                }
+            },
+            "end": "\\]\\1\\][ \\t]*",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.end.lua"
+                }
+            },
+            "name": "string.quoted.other.multiline.lua"
         },
         {
             "name": "constant.language.lua",
@@ -70,6 +156,10 @@
             "name": "entity.name.tag.layout",
             "match": "(?<=layout:\\s*)\\b[A-Za-z][A-Za-z0-9_]*\\b"
         },
+        {
+            "name": "entity.name.tag.fontAwesome",
+            "match": "@FontAwesome"
+        },
 
         {
             "name": "constant.language.boolean",
@@ -80,11 +170,11 @@
             "match": "\\b\\d+(?=(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b)"
         },
         {
-            "name": "keyword.control.unit",
+            "name": "storage.type.unit",
             "match": "(?<=\\d)(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
         },
         {
-            "name": "keyword.control.unit",
+            "name": "storage.type.unit",
             "match": "(?<=: )\\b(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
         },
         {
@@ -127,21 +217,19 @@
             "name": "string.unquoted.path",
             "match": "(?<=:\\s*)[A-Za-z0-9_/]*\\/[A-Za-z0-9_/]*"
         },
-        {
-            "name": "variable.other.table",
-            "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\.)"
-        },
+
         {
             "name": "support.function",
             "match": "(?<=\\.)\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\()"
         },
         {
             "name": "support.function",
-            "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\()"
+            "match": "\\b[A-Za-z_][A-Za-z0-9_.]*\\b(?=\\()"
         },
+
         {
-            "name": "storage.type.command",
-            "match": "@[\\w-]+"
+            "name": "keyword.control.command",
+            "match": "^\\s*@\\S+"
         },
         {
             "name": "support.class",
@@ -153,7 +241,7 @@
         },
         {
             "name": "entity.name.class",
-            "match": "^\\s*[A-Z][A-Za-z0-9_.]*\\s*$"
+            "match": "^\\s*[A-Z][A-Za-z0-9_.-]*"
         },
 
         {
@@ -161,5 +249,11 @@
             "match": "(?<=:\\s*)\\b[A-Za-z][A-Za-z0-9_.-]*\\b"
         }
     ],
+    "repository": {
+        "escaped_char": {
+            "match": "\\\\.",
+            "name": "constant.character.escape.lua"
+        }
+    },
     "scopeName": "source.lui"
-  }
+}
