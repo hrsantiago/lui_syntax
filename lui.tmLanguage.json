@@ -139,14 +139,40 @@
             "name": "support.variable.id",
             "match": "(?<=id:\\s*)\\b[A-Za-z][A-Za-z0-9_]*\\b"
         },
-
+        {
+            "begin": "^\\s*anchors\\.[^\\s:]*:\\s*([A-Za-z][A-Za-z0-9_]*)\\.",
+            "end": "(\\b[A-Za-z][A-Za-z0-9_]*\\b)",
+            "beginCaptures": {
+                "0": {
+                    "name": "meta.anchor.definition"
+                },
+                "1": {
+                    "name": "support.variable.id.anchors"
+                }
+            },
+            "endCaptures": {
+                "1": {
+                    "name": "entity.name.tag.anchors"
+                }
+            }
+        },
+        {
+            "begin": "^\\s*anchors\\.[^\\s:]*:\\s*",
+            "end": "(\\b[A-Za-z][A-Za-z0-9_]*\\b)",
+            "beginCaptures": {
+                "0": {
+                    "name": "meta.anchor.definition"
+                }
+            },
+            "endCaptures": {
+                "1": {
+                    "name": "support.variable.id.anchors"
+                }
+            }
+        },
         {
             "name": "entity.name.tag.equations",
             "match": "\\b(linear|quadratic|cubic|quartic|quintic|sinusoidal|exponential|circular|bounce|back|elastic|ease-in|ease-out|ease-inout)\\b"
-        },
-        {
-            "name": "entity.name.tag.anchors",
-            "match": "(?<=anchors\\.[A-Za-z][A-Za-z0-9_]*:\\s*)\\b[A-Za-z][A-Za-z0-9_.]*\\b"
         },
         {
             "name": "entity.name.tag.align",
