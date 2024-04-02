@@ -140,6 +140,20 @@
             "match": "(?<=id:\\s*)\\b[A-Za-z][A-Za-z0-9_]*\\b"
         },
         {
+            "begin": "^\\s*(vertical-scrollbar|horizontal-scrollbar)[^\\s:]*:\\s*",
+            "end": "(\\b[A-Za-z][A-Za-z0-9_]*\\b)",
+            "beginCaptures": {
+                "0": {
+                    "name": "meta.scrollbar.definition"
+                }
+            },
+            "endCaptures": {
+                "1": {
+                    "name": "support.variable.id.scrollbar"
+                }
+            }
+        },
+        {
             "begin": "^\\s*anchors\\.[^\\s:]*:\\s*([A-Za-z][A-Za-z0-9_]*)\\.",
             "end": "(\\b[A-Za-z][A-Za-z0-9_]*\\b)",
             "beginCaptures": {
