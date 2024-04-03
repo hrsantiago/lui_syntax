@@ -17,7 +17,8 @@
     "languages": [{
       "id": "lui",
       "extensions": [".lui"],
-      "aliases": ["LUI", "lui"]
+      "aliases": ["LUI", "lui"],
+      "configuration": "./language-configuration.json"
     }],
     "grammars": [{
       "language": "lui",
