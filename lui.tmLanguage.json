@@ -218,8 +218,18 @@
             "match": "(?<=: )\\b(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
         },
         {
-            "name": "keyword.control.state",
-            "match": "\\$!?\\b[A-Za-z][A-Za-z0-9_]*\\b"
+            "begin": "(\\$!?\\b[A-Za-z][A-Za-z0-9_\\s]*\\b)",
+            "end": ":",
+            "beginCaptures": {
+                "1": {
+                    "name": "keyword.control.state"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.separator"
+                }
+            }
         },
         {
             "name": "keyword.operator",
