@@ -2,7 +2,7 @@
   "name": "lui-language",
   "displayName": "LUI Language",
   "description": "Support for WGS LUI Syntax",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "icon": "icon.png",
   "publisher": "Pedrilsk",
   "repository": {
@@ -16,7 +16,7 @@
   "contributes": {
     "languages": [{
       "id": "lui",
-      "extensions": [".lui"],
+      "extensions": [".lui", ".lmod"],
       "aliases": ["LUI", "lui"],
       "configuration": "./language-configuration.json"
     }],
