@@ -2,7 +2,7 @@
   "name": "lui-language",
   "displayName": "LUI Language",
   "description": "Support for WGS LUI Syntax",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "icon": "icon.png",
   "publisher": "Pedrilsk",
   "repository": {
