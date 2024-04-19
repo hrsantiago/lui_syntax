@@ -207,18 +207,18 @@
         },
         {
             "name": "constant.numeric",
-            "match": "\\b\\d+(?=(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b)"
+            "match": "\\b\\d+(?=(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms|s)\\b)"
         },
         {
             "name": "storage.type.unit",
-            "match": "(?<=\\d)(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
+            "match": "(?<=\\d)(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms|s)\\b"
         },
         {
             "name": "storage.type.unit",
-            "match": "(?<=: )\\b(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms)\\b"
+            "match": "(?<=: )\\b(dp|rp|rh|rw|p|ph|pw|sp|px|mm|in|pt|%|em|ms|s)\\b"
         },
         {
-            "begin": "(\\$!?\\b[A-Za-z][A-Za-z0-9_\\s!]*\\b)",
+            "begin": "(\\$!?\\b[A-Za-z][A-Za-z0-9_\\s!-]*\\b)",
             "end": ":",
             "beginCaptures": {
                 "1": {
@@ -265,7 +265,7 @@
         },
         {
             "name": "string.unquoted.path",
-            "match": "(?<=:\\s*)[A-Za-z0-9_/]*\\/[A-Za-z0-9_/]*"
+            "match": "(?<=:\\s*)[A-Za-z0-9_/-]*\\/[A-Za-z0-9_/-]*"
         },
 
         {
