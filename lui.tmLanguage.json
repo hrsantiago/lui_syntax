@@ -232,6 +232,10 @@
             }
         },
         {
+            "name": "keyword.other.operator",
+            "match": "(\\.{2}|!|\\$|\\%|\\*)"
+        },
+        {
             "name": "keyword.operator",
             "match": "(\\.{2}|!|\\$|\\%|\\*)"
         },
