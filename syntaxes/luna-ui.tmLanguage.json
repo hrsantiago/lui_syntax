@@ -1,0 +1,265 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Luna UI",
+  "scopeName": "source.luna-ui",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#multiline" },
+    { "include": "#inline-lua" },
+    { "include": "#declarations" },
+    { "include": "#commands" },
+    { "include": "#states" },
+    { "include": "#properties" },
+    { "include": "#list-items" },
+    { "include": "#values" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.luna-ui",
+          "match": "^\\s*//.*$"
+        }
+      ]
+    },
+    "multiline": {
+      "patterns": [
+        {
+          "name": "meta.directive.lua-block.luna-ui",
+          "begin": "^([ \\t]*)(!)(@(?:transition|animation|field|slotRet|slot|forward-state|sound|repeat|inherit-property|custom-state|bind))(?:(\\s+)([^:]+))?(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
+          "beginCaptures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "keyword.control.directive.luna-ui" },
+            "5": { "name": "variable.parameter.directive.luna-ui" },
+            "6": { "name": "punctuation.separator.key-value.luna-ui" },
+            "8": { "name": "keyword.operator.multiline.luna-ui" }
+          },
+          "end": "^(?!\\1  |\\s*$)",
+          "contentName": "meta.embedded.block.lua",
+          "patterns": [
+            { "include": "source.lua" }
+          ]
+        },
+        {
+          "begin": "^([ \\t]*)(!)([^:]+?)(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
+          "beginCaptures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "support.type.property-name.luna-ui" },
+            "4": { "name": "punctuation.separator.key-value.luna-ui" },
+            "6": { "name": "keyword.operator.multiline.luna-ui" }
+          },
+          "end": "^(?!\\1  |\\s*$)",
+          "contentName": "meta.embedded.block.lua",
+          "patterns": [
+            { "include": "source.lua" }
+          ]
+        },
+        {
+          "name": "meta.directive.lua-block.luna-ui",
+          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(@(?:slotRet|slot|field|bind))(?:(\\s+)([^:]+))?(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
+          "beginCaptures": {
+            "2": { "name": "meta.qualifier.luna-ui" },
+            "3": { "name": "keyword.control.directive.luna-ui" },
+            "5": { "name": "variable.parameter.directive.luna-ui" },
+            "6": { "name": "punctuation.separator.key-value.luna-ui" },
+            "8": { "name": "keyword.operator.multiline.luna-ui" }
+          },
+          "end": "^(?!\\1  |\\s*$)",
+          "contentName": "meta.embedded.block.lua",
+          "patterns": [
+            { "include": "source.lua" }
+          ]
+        }
+      ]
+    },
+    "inline-lua": {
+      "patterns": [
+        {
+          "name": "meta.directive.lua-expression.luna-ui",
+          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(!)(@[A-Za-z_-]+|[A-Za-z_$][\\w.$-]*)(?:(\\s+)([^:]+?))?(\\s*:)(\\s*)",
+          "beginCaptures": {
+            "2": { "name": "meta.qualifier.luna-ui" },
+            "3": { "name": "keyword.operator.expression.luna-ui" },
+            "4": { "name": "support.type.property-name.luna-ui" },
+            "6": { "name": "variable.parameter.directive.luna-ui" },
+            "7": { "name": "punctuation.separator.key-value.luna-ui" }
+          },
+          "end": "$",
+          "contentName": "meta.embedded.inline.lua",
+          "patterns": [
+            { "include": "source.lua" }
+          ]
+        },
+        {
+          "name": "meta.directive.lua-expression.luna-ui",
+          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(@(?:slotRet|slot|field|bind))(?:(\\s+)([^:]+?))?(\\s*:)(\\s*)",
+          "beginCaptures": {
+            "2": { "name": "meta.qualifier.luna-ui" },
+            "3": { "name": "keyword.control.directive.luna-ui" },
+            "5": { "name": "variable.parameter.directive.luna-ui" },
+            "6": { "name": "punctuation.separator.key-value.luna-ui" }
+          },
+          "end": "$",
+          "contentName": "meta.embedded.inline.lua",
+          "patterns": [
+            { "include": "source.lua" }
+          ]
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "^(\\s*)(\\.[A-Za-z_][\\w-]*)(?:\\s*)$",
+          "captures": {
+            "2": { "name": "entity.name.type.class.luna-ui" }
+          }
+        },
+        {
+          "match": "^(\\s*)([A-Za-z_][\\w-]*)(\\s*)(<)(\\s*)([A-Za-z_][\\w-]*)(?:(\\.)([\\w.-]+))?\\s*$",
+          "captures": {
+            "2": { "name": "entity.name.type.luna-ui" },
+            "4": { "name": "keyword.operator.inheritance.luna-ui" },
+            "6": { "name": "entity.other.inherited-class.luna-ui" },
+            "7": { "name": "punctuation.accessor.luna-ui" },
+            "8": { "name": "entity.other.attribute-name.class.luna-ui" }
+          }
+        }
+      ]
+    },
+    "commands": {
+      "patterns": [
+        {
+          "match": "^([ \\t]*)(!)?(@(?:slotRet|slot))(\\s+)([^:]+?)(\\s*:)",
+          "captures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "keyword.control.directive.luna-ui" },
+            "5": { "name": "entity.name.function.signal.luna-ui" },
+            "6": { "name": "punctuation.separator.key-value.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)(!)?(@(?:field|bind))(\\s+)([^:]+?)(\\s*:)",
+          "captures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "keyword.control.directive.luna-ui" },
+            "5": { "name": "variable.other.member.luna-ui" },
+            "6": { "name": "punctuation.separator.key-value.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)(!)?(@(?:transition|animation))(\\s+)([^:]+?)(\\s*:)",
+          "captures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "keyword.control.directive.luna-ui" },
+            "5": { "name": "support.type.property-name.luna-ui" },
+            "6": { "name": "punctuation.separator.key-value.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)(@(?:forward-state|custom-state))(\\s+)(.*?)\\s*$",
+          "captures": {
+            "2": { "name": "keyword.control.directive.luna-ui" },
+            "4": { "name": "constant.language.state.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)(@inherit-property)(\\s+)(.*?)\\s*$",
+          "captures": {
+            "2": { "name": "keyword.control.directive.luna-ui" },
+            "4": { "name": "support.type.property-name.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)(@(?:sound|repeat|undef))(?:\\s+)(.*?)\\s*$",
+          "captures": {
+            "2": { "name": "keyword.control.directive.luna-ui" },
+            "3": { "name": "string.unquoted.directive-argument.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)(!?)(@[A-Za-z_-]+)",
+          "captures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "invalid.illegal.unknown-command.luna-ui" }
+          }
+        }
+      ]
+    },
+    "states": {
+      "patterns": [
+        {
+          "name": "meta.block.state-selector.luna-ui",
+          "begin": "^([ \\t]*)(\\$)(?=[^:\\n]*:)",
+          "beginCaptures": {
+            "2": { "name": "keyword.control.conditional.state.luna-ui" }
+          },
+          "end": "(:)",
+          "endCaptures": {
+            "1": { "name": "punctuation.separator.key-value.luna-ui" }
+          },
+          "patterns": [
+            {
+              "match": "!",
+              "name": "keyword.operator.logical.state.luna-ui"
+            },
+            {
+              "match": "([A-Za-z_][\\w]*)(-)(in|out)\\b",
+              "captures": {
+                "1": { "name": "constant.language.state.luna-ui" },
+                "2": { "name": "punctuation.separator.state-transition.luna-ui" },
+                "3": { "name": "storage.modifier.state-transition.luna-ui" }
+              }
+            },
+            {
+              "match": "[A-Za-z_][\\w]*",
+              "name": "constant.language.state.luna-ui"
+            }
+          ]
+        }
+      ]
+    },
+    "properties": {
+      "patterns": [
+        {
+          "match": "^([ \\t]*)(!)?([A-Za-z_$@][\\w.@$ !-]*?)(\\s*:)",
+          "captures": {
+            "2": { "name": "keyword.operator.expression.luna-ui" },
+            "3": { "name": "support.type.property-name.luna-ui" },
+            "4": { "name": "punctuation.separator.key-value.luna-ui" }
+          }
+        },
+        {
+          "match": "^([ \\t]*)([A-Za-z_][\\w.-]*)(?=\\s*$)",
+          "captures": {
+            "2": { "name": "entity.name.tag.widget.luna-ui" }
+          }
+        }
+      ]
+    },
+    "list-items": {
+      "patterns": [
+        {
+          "match": "^\\s*(-)(?=\\s)",
+          "captures": {
+            "1": { "name": "punctuation.definition.list-item.luna-ui" }
+          }
+        }
+      ]
+    },
+    "values": {
+      "patterns": [
+        { "name": "string.quoted.double.luna-ui", "match": "\"(?:\\\\.|[^\"\\\\])*\"" },
+        { "name": "string.quoted.single.luna-ui", "match": "'(?:\\\\.|[^'\\\\])*'" },
+        { "name": "constant.other.color.luna-ui", "match": "#[0-9A-Fa-f]{3,8}\\b" },
+        { "name": "constant.numeric.unit.luna-ui", "match": "(?<![\\w.])-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e-?\\d+)?(?:dp|rp|rh|rw|ph|pw|sp|px|mm|in|pt|%|em|p)?\\b" },
+        { "name": "constant.language.boolean.luna-ui", "match": "\\b(?:true|false)\\b" },
+        { "name": "constant.language.null.luna-ui", "match": "\\b(?:nil|none)\\b" },
+        { "name": "variable.other.anchor.luna-ui", "match": "\\b(?:parent|prev|next|self|root)\\.[A-Za-z][\\w-]*\\b" },
+        { "name": "punctuation.definition.expression.luna-ui", "match": "!(?=[A-Za-z_$@])" },
+        { "name": "punctuation.definition.array.begin.luna-ui", "match": "\\[" },
+        { "name": "punctuation.definition.array.end.luna-ui", "match": "\\]" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "Luna UI element": {
+    "prefix": "element",
+    "body": [
+      "${1:MyWidget} < ${2:UIWidget}",
+      "  id: ${3:widget}",
+      "  ${0}"
+    ],
+    "description": "Declare a Luna UI element"
+  },
+  "Widget state": {
+    "prefix": "state",
+    "body": [
+      "\u0024${1|hover,pressed,checked,disabled,on,focus,selected|}:",
+      "  ${2:opacity}: ${0:1}"
+    ],
+    "description": "Add a state-specific style block"
+  },
+  "Lua slot": {
+    "prefix": "slot",
+    "body": "@slot ${1:onClick}: ${0:onClick(self)}",
+    "description": "Connect a widget signal to inline Lua"
+  },
+  "Transition": {
+    "prefix": "transition",
+    "body": "@transition ${1:opacity}: ${2:0.2s linear ease-inout}",
+    "description": "Configure a property transition"
+  },
+  "Animation": {
+    "prefix": "animation",
+    "body": [
+      "@animation ${1:opacity}: ${2:0.5s -1 alternate 0s 1 linear ease-inout}",
+      "  - ${3:0}",
+      "  - ${0:1}"
+    ],
+    "description": "Configure a keyframe animation"
+  }
+}

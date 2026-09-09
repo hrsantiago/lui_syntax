@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Luna UI Color Scheme",
+  "scopeName": "source.luna-ui-colors",
+  "patterns": [
+    {
+      "name": "comment.line.double-slash.luna-ui-colors",
+      "match": "^\\s*//.*$"
+    },
+    {
+      "match": "^([ \\t]*)([A-Za-z_][\\w-]*)(\\s*:)(\\s*)(#[0-9A-Fa-f]+)\\s*$",
+      "captures": {
+        "2": { "name": "entity.name.constant.color-alias.luna-ui" },
+        "3": { "name": "punctuation.separator.key-value.luna-ui" },
+        "5": { "name": "constant.other.color.luna-ui" }
+      }
+    },
+    {
+      "match": "^([ \\t]*)([A-Za-z_][\\w-]*)(\\s*:)(\\s*)([A-Za-z_][\\w-]*)\\s*$",
+      "captures": {
+        "2": { "name": "entity.name.constant.color-alias.luna-ui" },
+        "3": { "name": "punctuation.separator.key-value.luna-ui" },
+        "5": { "name": "variable.other.constant.color-alias-reference.luna-ui" }
+      }
+    },
+    {
+      "name": "invalid.illegal.color-definition.luna-ui",
+      "match": "^\\s*\\S.*$"
+    }
+  ]
+}

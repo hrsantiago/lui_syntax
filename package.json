@@ -1,39 +1,260 @@
 {
   "name": "lui-language",
   "displayName": "LUI Language",
-  "description": "Support for WGS LUI Syntax",
-  "version": "0.1.4",
-  "icon": "icon.png",
+  "description": "Support for WGS LUI syntax with diagnostics, autocomplete, navigation and Lua integration.",
+  "version": "0.1.5",
   "publisher": "Pedrilsk",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/hrsantiago/lui_syntax"
   },
   "engines": {
-    "vscode": "^1.0.0"
+    "vscode": "^1.85.0"
   },
-  "categories": ["Programming Languages"],
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "luna",
+    "lui",
+    "otml",
+    "ui"
+  ],
+  "activationEvents": [
+    "onLanguage:lui",
+    "onLanguage:luna-ui-colors",
+    "workspaceContains:**/*.lui",
+    "workspaceContains:**/*.lmod",
+    "workspaceContains:**/*.lpe",
+    "workspaceContains:**/*.lml"
+  ],
+  "main": "./extension.js",
   "contributes": {
-    "languages": [{
-      "id": "lui",
-      "extensions": [".lui", ".lmod", ".lpe"],
-      "aliases": ["LUI", "lui"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "lui",
-      "scopeName": "source.lui",
-      "path": "./lui.tmLanguage.json"
-    }],
+    "languages": [
+      {
+        "id": "lui",
+        "aliases": [
+          "LUI",
+          "lui",
+          "Luna UI",
+          "OTML UI"
+        ],
+        "extensions": [
+          ".lui",
+          ".lmod",
+          ".lpe"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "luna-ui-colors",
+        "aliases": [
+          "Luna UI Color Scheme",
+          "LML Colors"
+        ],
+        "extensions": [
+          ".lml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lui",
+        "scopeName": "source.luna-ui",
+        "path": "./syntaxes/luna-ui.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.inline.lua": "lua",
+          "meta.embedded.block.lua": "lua"
+        }
+      },
+      {
+        "language": "luna-ui-colors",
+        "scopeName": "source.luna-ui-colors",
+        "path": "./syntaxes/luna-ui-colors.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "lui",
+        "path": "./snippets/luna-ui.json"
+      }
+    ],
     "configuration": {
-      "type": "object",
-      "title": "LUI configuration",
+      "title": "Luna UI",
       "properties": {
         "lui.fileExtensions": {
-          "default": [".lui"],
-          "description": "Define additional file extensions."
+          "type": "array",
+          "default": [
+            ".lui"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Define additional file extensions (compatibility setting from LUI Language 0.1.x)."
+        },
+        "lunaUI.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable live Luna UI diagnostics."
+        },
+        "lunaUI.diagnostics.unknownProperties": {
+          "type": "string",
+          "enum": [
+            "off",
+            "warning",
+            "error"
+          ],
+          "default": "off",
+          "description": "Severity for properties not found in the built-in or workspace index. Keep off when project widgets define properties dynamically."
+        },
+        "lunaUI.diagnostics.unknownElements": {
+          "type": "string",
+          "enum": [
+            "off",
+            "warning",
+            "error"
+          ],
+          "default": "warning",
+          "description": "Severity for inherited or instantiated elements not found in the workspace index. Native UI* classes are accepted."
+        },
+        "lunaUI.diagnostics.unknownColorAliases": {
+          "type": "string",
+          "enum": [
+            "off",
+            "warning",
+            "error"
+          ],
+          "default": "off",
+          "description": "Severity for named colors not found in Color::registerAlias or indexed .lml/.otml color files."
+        },
+        "lunaUI.index.maxFiles": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 100,
+          "description": "Maximum number of LUI, Lua and C++ files scanned for project symbols."
+        },
+        "lunaUI.index.exclude": {
+          "type": "string",
+          "default": "**/{.git,.luna-ui-cache,node_modules,build,dist,out,vendor}/**",
+          "description": "Glob excluded from the project symbol scan."
+        },
+        "lunaUI.styleSources": {
+          "type": "array",
+          "default": [],
+          "description": "Ordered external style sources. When set, markup styles are loaded only from this list; Lua/C++ APIs are still indexed from the open workspace.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "File or directory path."
+              },
+              {
+                "type": "object",
+                "required": ["path"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name shown in the load-order report."
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "Absolute path or path using ${workspaceFolder}, ${workspaceFolder:name}, ${env:VAR} or ~."
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Optional explicit relative file/directory order inside path. Without it, markup files are loaded recursively in lexical path order."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "lunaUI.colors.decorations.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the resolved color swatch beside hexadecimal colors and Luna UI color aliases. The editor.colorDecorators VS Code setting must also be enabled."
+        },
+        "lunaUI.assets.hoverPreview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a local image preview when hovering static image-source, icon-source and *-image-source values. Font Awesome and dynamic ! values are ignored."
+        },
+        "lunaUI.assets.automaticSearch.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Before configured sources, resolve assets relative to the LUI file, open workspace folders and their ancestors. Also recognizes when the opened folder is the assets directory itself."
+        },
+        "lunaUI.assets.sources": {
+          "type": "array",
+          "default": [],
+          "description": "Ordered fallback filesystem mounts used after automatic asset discovery. A string mounts its path at /.",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "Directory mounted at Luna UI virtual /."
+              },
+              {
+                "type": "object",
+                "required": ["path"],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Filesystem directory, accepting ${workspaceFolder}, ${workspaceFolder:name}, ${env:VAR} or ~."
+                  },
+                  "prefix": {
+                    "type": "string",
+                    "default": "/",
+                    "description": "Luna UI virtual prefix mapped to path; for example /assets."
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "lunaUI.assets.extensions": {
+          "type": "array",
+          "default": ["png", "jpg", "jpeg", "webp", "gif", "bmp", "ico", "svg"],
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Extensions tried in order when an image source omits its extension."
+        },
+        "lunaUI.luaIntegration.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Delegate dynamic ! values and Lua-backed @slot/@slotRet/@field/@bind constructs to the installed Lua extension."
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "lunaUI.reindex",
+        "title": "Luna UI: Reindex Workspace"
+      },
+      {
+        "command": "lunaUI.showLoadOrder",
+        "title": "Luna UI: Show Style Load Order"
+      },
+      {
+        "command": "lunaUI.openLuaShadow",
+        "title": "Luna UI: Open Embedded Lua Shadow"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "package:vsix": "node scripts/package-vsix.js"
   }
 }

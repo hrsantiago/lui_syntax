@@ -1,0 +1,6 @@
+.vscode/**
+test/**
+scripts/**
+*.vsix
+*.zip
+**/*.map
