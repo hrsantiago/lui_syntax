@@ -12,10 +12,21 @@ const extensionDir = path.join(stage, 'extension');
 fs.mkdirSync(extensionDir, { recursive: true });
 
 const ignore = new Set(['.vscode', 'test', 'scripts', '.vscodeignore']);
+const runtimeDependencyFiles = new Set([
+  'node_modules/opentype.js/package.json',
+  'node_modules/opentype.js/dist/opentype.js'
+]);
+function shouldCopy(source, entry) {
+  const relative = path.relative(root, path.join(source, entry.name)).replaceAll(path.sep, '/');
+  if (!relative.startsWith('node_modules/')) return true;
+  if (runtimeDependencyFiles.has(relative)) return true;
+  return entry.isDirectory() && [...runtimeDependencyFiles].some(file => file.startsWith(`${relative}/`));
+}
 function copyTree(source, target) {
   fs.mkdirSync(target, { recursive: true });
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
     if (ignore.has(entry.name) || entry.name.endsWith('.vsix') || entry.name.endsWith('.zip')) continue;
+    if (!shouldCopy(source, entry)) continue;
     const from = path.join(source, entry.name);
     const to = path.join(target, entry.name);
     if (entry.isDirectory()) copyTree(from, to);

@@ -8,6 +8,8 @@ const path = require('node:path');
 const core = require('./lui-core');
 const luaEmbedding = require('./lua-embedding');
 const assetUtils = require('./asset-utils');
+const fontAwesomeUtils = require('./fontawesome-utils');
+const opentype = require('opentype.js');
 
 const LANGUAGE = 'lui';
 const COLOR_LANGUAGE = 'luna-ui-colors';
@@ -433,6 +435,154 @@ class AssetResolver {
   }
 }
 
+class FontAwesomeResolver {
+  constructor(index, storageUri) {
+    this.index = index;
+    this.cacheRoot = path.join(storageUri.fsPath, 'fontawesome-previews');
+    this.fileLists = new Map();
+    this.fonts = new Map();
+    this.previews = new Map();
+  }
+
+  clear() {
+    this.fileLists.clear();
+    this.fonts.clear();
+    this.previews.clear();
+  }
+
+  roots(document) {
+    const configuration = vscode.workspace.getConfiguration('lunaUI', document.uri);
+    const folders = vscode.workspace.workspaceFolders || [];
+    const owning = vscode.workspace.getWorkspaceFolder(document.uri);
+    const workspacePaths = [...new Map([owning, ...folders].filter(Boolean)
+      .map(folder => [folder.uri.toString(), folder.uri.fsPath])).values()];
+    const automatic = configuration.get('assets.automaticSearch.enabled', true)
+      ? fontAwesomeUtils.automaticFontDirectories(path.dirname(document.uri.fsPath), workspacePaths)
+      : [];
+    const configured = String(configuration.get('fontAwesome.fontPath', '') || '').trim();
+    return [...new Set([...automatic, ...(configured ? [this.index.expandPath(configured)] : [])])];
+  }
+
+  async filesInRoot(root) {
+    try {
+      const stat = await fs.stat(root);
+      if (stat.isFile()) return fontAwesomeUtils.isFontFile(root) ? [root] : [];
+      if (!stat.isDirectory()) return [];
+      const found = [];
+      const visit = async (directory, depth) => {
+        if (depth > 3 || found.length >= 1000) return;
+        const entries = await fs.readdir(directory, { withFileTypes: true });
+        for (const entry of entries) {
+          if (found.length >= 1000) break;
+          const candidate = path.join(directory, entry.name);
+          if (entry.isDirectory()) await visit(candidate, depth + 1);
+          else if (entry.isFile() && fontAwesomeUtils.isFontFile(candidate)) found.push(candidate);
+        }
+      };
+      await visit(root, 0);
+      return found.sort((left, right) =>
+        fontAwesomeUtils.fontFileScore(right) - fontAwesomeUtils.fontFileScore(left)
+        || left.localeCompare(right));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async fontFiles(document) {
+    const roots = this.roots(document);
+    const key = roots.join('\0');
+    if (!this.fileLists.has(key)) {
+      this.fileLists.set(key, (async () => {
+        const files = [];
+        const seen = new Set();
+        for (const root of roots) {
+          for (const file of await this.filesInRoot(root)) {
+            const normalized = path.normalize(file);
+            const identity = process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+            if (!seen.has(identity)) {
+              seen.add(identity);
+              files.push(normalized);
+            }
+          }
+        }
+        return files;
+      })());
+    }
+    return this.fileLists.get(key);
+  }
+
+  async loadFont(filePath) {
+    if (!this.fonts.has(filePath)) {
+      this.fonts.set(filePath, (async () => {
+        try {
+          const bytes = await fs.readFile(filePath);
+          const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+          return opentype.parse(buffer);
+        } catch (_) {
+          return undefined;
+        }
+      })());
+    }
+    return this.fonts.get(filePath);
+  }
+
+  async resolve(document, source) {
+    const reference = fontAwesomeUtils.parseFontAwesomeSource(source);
+    if (!reference) return { invalid: true, roots: this.roots(document) };
+    const files = await this.fontFiles(document);
+    for (const fontPath of files) {
+      const font = await this.loadFont(fontPath);
+      if (!font) continue;
+      const svg = fontAwesomeUtils.glyphSvg(font, reference.codepoint);
+      if (!svg) continue;
+      const stat = await fs.stat(fontPath);
+      const key = crypto.createHash('sha1')
+        .update(`${fontPath}\0${stat.mtimeMs}\0${reference.codepoint}`).digest('hex');
+      let uri = this.previews.get(key);
+      if (!uri) {
+        await fs.mkdir(this.cacheRoot, { recursive: true });
+        const previewPath = path.join(this.cacheRoot, `${key}.svg`);
+        await fs.writeFile(previewPath, svg, 'utf8');
+        uri = vscode.Uri.file(previewPath);
+        this.previews.set(key, uri);
+      }
+      const fullName = font.names?.fullName?.en || font.names?.fontFamily?.en;
+      return { ...reference, uri, fontUri: vscode.Uri.file(fontPath), fontPath, fullName };
+    }
+    return { ...reference, missing: true, roots: this.roots(document), files };
+  }
+}
+
+class AssetReferenceHighlighter {
+  constructor() {
+    this.decoration = vscode.window.createTextEditorDecorationType({ color: '#4fc1ff' });
+  }
+
+  clear(document) {
+    const uri = document.uri.toString();
+    for (const editor of vscode.window.visibleTextEditors.filter(item => item.document.uri.toString() === uri)) {
+      editor.setDecorations(this.decoration, []);
+    }
+  }
+
+  update(document) {
+    if (!vscode.workspace.getConfiguration('lunaUI', document.uri)
+      .get('assets.referenceHighlight.enabled', true) || document.languageId !== LANGUAGE) {
+      this.clear(document);
+      return;
+    }
+    const ranges = assetReferences(document).map(reference => reference.range);
+    for (const editor of vscode.window.visibleTextEditors
+      .filter(item => item.document.uri.toString() === document.uri.toString())) {
+      editor.setDecorations(this.decoration, ranges);
+    }
+  }
+
+  dispose() {
+    this.decoration.dispose();
+  }
+}
+
 function completion(label, kind, detail, insertText) {
   const item = new vscode.CompletionItem(label, kind);
   item.detail = detail;
@@ -594,22 +744,30 @@ function makeDocumentColorProvider(index) {
   };
 }
 
-function assetReferenceAt(document, position) {
+function assetReferences(document) {
   const parsed = core.parseDocument(document.getText());
-  const node = parsed.nodes.find(item => item.line === position.line && item.unique && item.value);
-  if (!node) return undefined;
-  const effective = core.stripQualifier(node.tag).tag;
-  if (effective.startsWith('!')) return undefined;
-  const property = effective.replace(/^!/, '');
-  if (!assetUtils.isAssetSourceProperty(property)) return undefined;
-  const range = valueRange(document, node);
-  if (!range.contains(position)) return undefined;
-  const source = assetUtils.cleanAssetValue(node.value);
-  if (!source || assetUtils.isFontAwesomeSource(source)) return undefined;
-  return { property, source, range };
+  return parsed.nodes.flatMap(node => {
+    if (!node.unique || !node.value) return [];
+    const effective = core.stripQualifier(node.tag).tag;
+    if (effective.startsWith('!')) return [];
+    const property = effective.replace(/^!/, '');
+    if (!assetUtils.isAssetSourceProperty(property)) return [];
+    const source = assetUtils.cleanAssetValue(node.value);
+    if (!source) return [];
+    return [{
+      kind: assetUtils.isFontAwesomeSource(source) ? 'fontawesome' : 'asset',
+      property,
+      source,
+      range: valueRange(document, node)
+    }];
+  });
 }
 
-function makeAssetProvider(resolver) {
+function assetReferenceAt(document, position) {
+  return assetReferences(document).find(reference => reference.range.contains(position));
+}
+
+function makeAssetProvider(resolver, fontAwesomeResolver) {
   return {
     async provideHover(document, position) {
       if (!vscode.workspace.getConfiguration('lunaUI', document.uri).get('assets.hoverPreview.enabled', true)) {
@@ -617,6 +775,38 @@ function makeAssetProvider(resolver) {
       }
       const reference = assetReferenceAt(document, position);
       if (!reference) return undefined;
+      if (reference.kind === 'fontawesome') {
+        if (!vscode.workspace.getConfiguration('lunaUI', document.uri)
+          .get('fontAwesome.hoverPreview.enabled', true)) return undefined;
+        const icon = await fontAwesomeResolver.resolve(document, reference.source);
+        const markdown = new vscode.MarkdownString();
+        if (icon.invalid) {
+          markdown.appendMarkdown(`**${reference.property}** — referência Font Awesome inválida.\n\n`);
+          markdown.appendMarkdown('Formato esperado: `@FontAwesome-estilo-tamanho-xcodigo`.');
+          return new vscode.Hover(markdown, reference.range);
+        }
+        if (icon.missing) {
+          markdown.appendMarkdown(`**${reference.property}** — ícone Font Awesome não encontrado.\n\n`);
+          markdown.appendMarkdown(`Código: \`U+${icon.hexadecimal.toUpperCase()}\` · estilo: \`${icon.style}\` · tamanho: \`${icon.size}\`\n\n`);
+          if (icon.files?.length) {
+            markdown.appendMarkdown('O código não existe nas fontes encontradas:\n\n');
+            for (const file of icon.files.slice(0, 8)) markdown.appendMarkdown(`- \`${file}\`\n`);
+          } else {
+            markdown.appendMarkdown('Nenhuma fonte `.ttf`, `.otf` ou `.woff` foi encontrada em `/assets/fonts/`.\n\n');
+            markdown.appendMarkdown('Configure o arquivo ou a pasta em `lunaUI.fontAwesome.fontPath`.');
+          }
+          return new vscode.Hover(markdown, reference.range);
+        }
+        const openCommand = `command:lunaUI.openAsset?${encodeURIComponent(JSON.stringify([icon.fontUri.toString()]))}`;
+        markdown.isTrusted = { enabledCommands: ['lunaUI.openAsset'] };
+        markdown.baseUri = vscode.Uri.file(`${path.dirname(icon.uri.fsPath)}${path.sep}`);
+        markdown.appendMarkdown(`**${reference.property}** — \`${reference.source}\`\n\n`);
+        markdown.appendMarkdown(`![Prévia do Font Awesome](./${path.basename(icon.uri.fsPath)})\n\n`);
+        markdown.appendMarkdown(`\`U+${icon.hexadecimal.toUpperCase()}\` · estilo \`${icon.style}\` · tamanho \`${icon.size}\`  \n`);
+        if (icon.fullName) markdown.appendMarkdown(`${icon.fullName}  \n`);
+        markdown.appendMarkdown(`[Abrir fonte](${openCommand})  \n\`${icon.fontPath}\``);
+        return new vscode.Hover(markdown, reference.range);
+      }
       const asset = await resolver.resolve(document, reference.source);
       if (!asset) {
         const attemptedDirectories = new Set();
@@ -648,6 +838,10 @@ function makeAssetProvider(resolver) {
     async provideDefinition(document, position) {
       const reference = assetReferenceAt(document, position);
       if (!reference) return undefined;
+      if (reference.kind === 'fontawesome') {
+        const icon = await fontAwesomeResolver.resolve(document, reference.source);
+        return icon.fontUri ? new vscode.Location(icon.fontUri, new vscode.Position(0, 0)) : undefined;
+      }
       const asset = await resolver.resolve(document, reference.source);
       return asset ? new vscode.Location(asset.uri, new vscode.Position(0, 0)) : undefined;
     }
@@ -824,6 +1018,13 @@ class LuaEmbeddedBridge {
     this.shadowUris = new Set();
   }
 
+  bindGlobalType(scope) {
+    return vscode.workspace.getConfiguration('lunaUI', scope)
+      .get('luaIntegration.bindGlobalType', 'any') === 'UIWidget'
+      ? 'UIWidget'
+      : 'any';
+  }
+
   shadowRoot(document) {
     const folder = vscode.workspace.getWorkspaceFolder(document.uri) || vscode.workspace.workspaceFolders?.[0];
     // Keep the shadow inside the owning workspace so LuaLS applies the same
@@ -885,31 +1086,19 @@ class LuaEmbeddedBridge {
   async refreshGlobals(globals) {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder || !(await this.supportsLua())) return;
+    const bindGlobalType = this.bindGlobalType(folder.uri);
     const root = vscode.Uri.joinPath(folder.uri, '.luna-ui-cache');
     const uri = vscode.Uri.joinPath(root, 'luna-ui-bindings.lua');
-    const declarations = [...globals.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .flatMap(([name, definitions]) => {
-        const definition = definitions.at(-1);
-        return [
-          `---@source ${definition.uri.toString()}:${definition.line + 1}`,
-          '---@type UIWidget',
-          `${name} = nil`
-        ];
-      });
-    const content = [
-      '---@diagnostic disable: lowercase-global, duplicate-set-field',
-      '-- Generated from Luna UI @bind declarations. Do not edit.',
-      ...declarations,
-      ''
-    ].join('\n');
+    const content = luaEmbedding.buildLuaBindingsDocument(globals, bindGlobalType);
     await this.writeShadow(root, uri, content);
   }
 
   async refresh(document) {
     const enabled = vscode.workspace.getConfiguration('lunaUI', document.uri).get('luaIntegration.enabled', true);
     if (!enabled || document.languageId !== LANGUAGE || !(await this.supportsLua())) return undefined;
-    const built = luaEmbedding.buildLuaVirtualDocument(document.getText(), document.uri.toString());
+    const bindGlobalType = this.bindGlobalType(document.uri);
+    const built = luaEmbedding.buildLuaVirtualDocument(
+      document.getText(), document.uri.toString(), bindGlobalType);
     const root = this.shadowRoot(document);
     const virtualUri = this.virtualUri(document, root);
     const state = { ...built, sourceUri: document.uri, virtualUri, version: document.version };
@@ -1055,13 +1244,16 @@ function activate(context) {
   const output = vscode.window.createOutputChannel('Luna UI');
   const index = new WorkspaceIndex(output);
   const assetResolver = new AssetResolver(index);
+  const fontAwesomeResolver = new FontAwesomeResolver(index, context.globalStorageUri);
+  const assetReferenceHighlighter = new AssetReferenceHighlighter();
   const luaBridge = new LuaEmbeddedBridge(luaDiagnostics, context);
   const colorProvider = makeDocumentColorProvider(index);
-  const assetProvider = makeAssetProvider(assetResolver);
+  const assetProvider = makeAssetProvider(assetResolver, fontAwesomeResolver);
   let timer;
 
   async function validate(document) {
     if (!isLunaLanguage(document)) return;
+    assetReferenceHighlighter.update(document);
     const config = vscode.workspace.getConfiguration('lunaUI');
     if (!config.get('diagnostics.enabled', true)) {
       diagnostics.delete(document.uri);
@@ -1138,6 +1330,7 @@ function activate(context) {
     diagnostics,
     luaDiagnostics,
     output,
+    assetReferenceHighlighter,
     vscode.commands.registerCommand('lunaUI.reindex', reindex),
     vscode.commands.registerCommand('lunaUI.showLoadOrder', () => index.showLoadOrder()),
     vscode.commands.registerCommand('lunaUI.openLuaShadow', () => {
@@ -1155,20 +1348,27 @@ function activate(context) {
     }),
     vscode.workspace.onDidSaveTextDocument(document => {
       assetResolver.clear();
+      fontAwesomeResolver.clear();
       if (!luaBridge.isShadowUri(document.uri)) {
         schedule(document, /\.(?:lui|lmod|lpe|lml|otml|lua|cpp|cc|cxx|h|hpp)$/i.test(document.fileName));
       }
     }),
-    vscode.workspace.onDidCreateFiles(() => assetResolver.clear()),
+    vscode.workspace.onDidCreateFiles(() => {
+      assetResolver.clear();
+      fontAwesomeResolver.clear();
+    }),
     vscode.workspace.onDidDeleteFiles(() => {
       assetResolver.clear();
+      fontAwesomeResolver.clear();
       reindex();
     }),
     vscode.workspace.onDidRenameFiles(() => {
       assetResolver.clear();
+      fontAwesomeResolver.clear();
       reindex();
     }),
     vscode.workspace.onDidCloseTextDocument(document => {
+      assetReferenceHighlighter.clear(document);
       if (isLunaLanguage(document)) diagnostics.delete(document.uri);
       if (document.languageId === LANGUAGE) luaDiagnostics.delete(document.uri);
     }),
@@ -1177,9 +1377,15 @@ function activate(context) {
         if (luaBridge.isShadowUri(uri)) luaBridge.mapDiagnostics(uri);
       }
     }),
+    vscode.window.onDidChangeVisibleTextEditors(editors => {
+      for (const editor of editors) {
+        if (isLunaLanguage(editor.document)) assetReferenceHighlighter.update(editor.document);
+      }
+    }),
     vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration('lunaUI')) {
         assetResolver.clear();
+        fontAwesomeResolver.clear();
         reindex();
       }
     }),

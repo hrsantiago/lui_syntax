@@ -2,7 +2,7 @@
   "name": "lui-language",
   "displayName": "LUI Language",
   "description": "Support for WGS LUI syntax with diagnostics, autocomplete, navigation and Lua integration.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "Pedrilsk",
   "license": "MIT",
   "repository": {
@@ -32,6 +32,14 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "configurationDefaults": {
+      "files.exclude": {
+        "**/.luna-ui-cache": true
+      },
+      "search.exclude": {
+        "**/.luna-ui-cache": true
+      }
+    },
     "languages": [
       {
         "id": "lui",
@@ -153,7 +161,9 @@
               },
               {
                 "type": "object",
-                "required": ["path"],
+                "required": [
+                  "path"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -165,7 +175,9 @@
                   },
                   "files": {
                     "type": "array",
-                    "items": { "type": "string" },
+                    "items": {
+                      "type": "string"
+                    },
                     "description": "Optional explicit relative file/directory order inside path. Without it, markup files are loaded recursively in lexical path order."
                   },
                   "enabled": {
@@ -185,7 +197,12 @@
         "lunaUI.assets.hoverPreview.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show a local image preview when hovering static image-source, icon-source and *-image-source values. Font Awesome and dynamic ! values are ignored."
+          "description": "Show a local image preview when hovering static image-source, icon-source and *-image-source values. Dynamic ! values are ignored."
+        },
+        "lunaUI.assets.referenceHighlight.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep static image and Font Awesome references highlighted in link-blue while preserving native hover and Ctrl+Click behavior."
         },
         "lunaUI.assets.automaticSearch.enabled": {
           "type": "boolean",
@@ -204,7 +221,9 @@
               },
               {
                 "type": "object",
-                "required": ["path"],
+                "required": [
+                  "path"
+                ],
                 "properties": {
                   "path": {
                     "type": "string",
@@ -226,15 +245,49 @@
         },
         "lunaUI.assets.extensions": {
           "type": "array",
-          "default": ["png", "jpg", "jpeg", "webp", "gif", "bmp", "ico", "svg"],
-          "items": { "type": "string" },
+          "default": [
+            "png",
+            "jpg",
+            "jpeg",
+            "webp",
+            "gif",
+            "bmp",
+            "ico",
+            "svg"
+          ],
+          "items": {
+            "type": "string"
+          },
           "uniqueItems": true,
           "description": "Extensions tried in order when an image source omits its extension."
+        },
+        "lunaUI.fontAwesome.hoverPreview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render static @FontAwesome-style-size-xcode icon sources in hover using a project-local font."
+        },
+        "lunaUI.fontAwesome.fontPath": {
+          "type": "string",
+          "default": "",
+          "description": "Fallback Font Awesome .ttf/.otf/.woff file or directory. Automatic discovery checks /assets/fonts first. Accepts ${workspaceFolder}, ${workspaceFolder:name}, ${env:VAR} and ~."
         },
         "lunaUI.luaIntegration.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Delegate dynamic ! values and Lua-backed @slot/@slotRet/@field/@bind constructs to the installed Lua extension."
+        },
+        "lunaUI.luaIntegration.bindGlobalType": {
+          "type": "string",
+          "enum": [
+            "any",
+            "UIWidget"
+          ],
+          "default": "any",
+          "enumDescriptions": [
+            "Treat @bind globals as dynamic Lua objects, allowing project-defined fields without false inject-field diagnostics.",
+            "Use strict UIWidget annotations. Choose this only when the Lua environment declares UIWidget and bound widgets are not extended with arbitrary fields."
+          ],
+          "description": "LuaLS type emitted for globals declared by @bind."
         }
       }
     },
@@ -256,5 +309,8 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "package:vsix": "node scripts/package-vsix.js"
+  },
+  "dependencies": {
+    "opentype.js": "^1.3.4"
   }
 }

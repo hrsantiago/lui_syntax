@@ -35,10 +35,10 @@ Extensão do VS Code publicada como **`Pedrilsk.lui-language`** para a linguagem
 
 1. Abra a paleta de comandos do VS Code.
 2. Execute **Extensions: Install from VSIX...**.
-3. Selecione `lui-language-0.1.5.vsix`.
+3. Selecione `lui-language-0.1.8.vsix`.
 4. Abra a pasta do game. Os styles globais podem ficar fora dela e ser apontados por configuração.
 
-Para depurar a extensão pelo código-fonte, abra esta pasta no VS Code e pressione `F5`.
+Para usar ou empacotar o código-fonte, execute `npm install` uma vez. Para depurar, abra esta pasta no VS Code e pressione `F5`.
 
 ## Configuração recomendada
 
@@ -105,7 +105,15 @@ Quando `lunaUI.styleSources` está configurado, o `.lml` precisa estar em uma da
 
 ## Prévia de imagens e ícones
 
-Ao passar o mouse sobre um valor estático de `image-source`, `icon-source` ou qualquer propriedade terminada em `-image-source`, a extensão mostra a imagem local e o caminho resolvido. Ctrl+Click abre o próprio arquivo no editor. Referências `@FontAwesome-...` e propriedades dinâmicas como `!icon-source:` são ignoradas, pois não correspondem a uma imagem estática conhecida durante a edição.
+Ao passar o mouse sobre um valor estático de `image-source`, `icon-source` ou qualquer propriedade terminada em `-image-source`, a extensão mostra a imagem local e o caminho resolvido. A referência inteira permanece destacada em azul-ciano para indicar que é interativa; o hover e o Ctrl+Click continuam seguindo o comportamento normal do VS Code. Propriedades dinâmicas como `!icon-source:` continuam ignoradas, pois não correspondem a uma imagem estática conhecida durante a edição.
+
+O destaque visual pode ser desligado sem remover as prévias ou o Ctrl+Click:
+
+```json
+{
+  "lunaUI.assets.referenceHighlight.enabled": false
+}
+```
 
 Sem configuração adicional, a extensão tenta automaticamente, nesta ordem:
 
@@ -138,6 +146,22 @@ Para assets que a descoberta automática não encontra ou quando a raiz virtual 
 
 No primeiro mount, `/assets/images_ui/icon` resolve para `D:/dev/my-game/assets/images_ui/icon.png` (ou a primeira extensão existente). Strings simples em `lunaUI.assets.sources` equivalem a um mount com prefixo `/`. Os mesmos placeholders de `styleSources` são aceitos.
 
+### Font Awesome
+
+Referências estáticas como `@FontAwesome-rounded-18sp-xf04b` também recebem prévia no hover. A extensão extrai estilo, tamanho e código Unicode e desenha o glifo usando a fonte real do projeto, inclusive fontes Font Awesome Pro que não podem ser redistribuídas no VSIX.
+
+A descoberta automática procura fontes `.ttf`, `.otf` e `.woff` em `/assets/fonts/` considerando os mesmos layouts aceitos para imagens: `assets` dentro do workspace, em algum diretório pai ou como a própria pasta aberta. A primeira fonte que contém o código solicitado é usada.
+
+Se a fonte estiver em outro lugar, configure um arquivo específico ou uma pasta como fallback:
+
+```json
+{
+  "lunaUI.fontAwesome.fontPath": "${workspaceFolder}/../assets/fonts/FontAwesome.ttf"
+}
+```
+
+O hover informa `U+F04B`, estilo, tamanho e o arquivo de fonte escolhido. Ctrl+Click abre esse arquivo. Referências montadas dinamicamente por Lua continuam sob responsabilidade da integração Lua.
+
 ## Ambiente Lua em `!` e comandos `@`
 
 Não é necessário configurar um executável Lua. Instale e configure normalmente a extensão Lua de sua preferência no VS Code — por exemplo, **Lua Language Server**. A Luna UI transforma somente o valor de uma tag dinâmica em um documento Lua virtual:
@@ -154,11 +178,23 @@ Não é necessário configurar um executável Lua. Instale e configure normalmen
 
 `@bind self: e_panel` e `@bind child: childId e_child` declaram `e_panel`/`e_child` no ambiente Lua global, reproduzindo `getglobalenv()` do runtime. A extensão gera `.luna-ui-cache/luna-ui-bindings.lua` com essas declarações, permitindo autocomplete e Ctrl+Click tanto do `.lui` para arquivos Lua externos quanto de um `.lua` para o `@bind` que declarou o objeto.
 
+Por padrão, os globals de `@bind` são anotados como `any`. Isso corresponde ao uso dinâmico do runtime, no qual o projeto pode adicionar campos como `config` ou `mustRequest`, e evita falsos positivos `undefined-doc-name`/`inject-field` do LuaLS. A navegação para a declaração `.lui` continua sendo fornecida por `---@source` e pelo provider da extensão.
+
+Projetos que declaram `UIWidget` no ambiente Lua e não injetam campos arbitrários podem optar pela tipagem estrita:
+
+```json
+{
+  "lunaUI.luaIntegration.bindGlobalType": "UIWidget"
+}
+```
+
 As declarações técnicas do cache usam `---@source` para apontar à linha original do `@bind`. Assim, Go to Definition solicitado pelo LuaLS abre o `.lui` de origem em vez de deixar o editor no arquivo gerado.
 
 Todos os comandos `@` continuam sendo reconhecidos como diretivas Luna/Lua. O bridge faz uma conversão específica para cada um: conteúdos realmente executados como Lua são enviados ao LuaLS; valores de domínio como `@transition opacity: 200ms`, `@sound` e states permanecem na gramática Luna UI para não produzirem erros Lua falsos.
 
 Para que o servidor Lua aplique o mesmo ambiente, libraries, globals e configuração do game, a extensão mantém arquivos-sombra em `.luna-ui-cache` dentro do workspace correspondente. Eles são atualizados automaticamente e ignorados pelo índice Luna UI. O diretório não fica dentro de `.vscode`, pois esse caminho é ignorado por padrão pelo LuaLS. Você pode adicionar `.luna-ui-cache/` ao `.gitignore` do projeto.
+
+O diretório `.luna-ui-cache` fica oculto por padrão tanto no Explorer quanto nas pesquisas do VS Code. Essa exclusão é apenas visual: os arquivos continuam dentro do workspace e permanecem disponíveis ao LuaLS para autocomplete, diagnósticos e navegação. Caso seja necessário inspecioná-los, defina `"**/.luna-ui-cache": false` em `files.exclude` e `search.exclude`.
 
 O comando **Luna UI: Open Embedded Lua Shadow** abre o arquivo-sombra correspondente ao `.lui` ativo. Isso permite conferir diretamente o código recebido pela extensão Lua e os diagnósticos publicados por ela.
 

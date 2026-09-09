@@ -2,8 +2,37 @@
 
 const core = require('./lui-core');
 
+function normalizeBindGlobalType(value) {
+  return value === 'UIWidget' ? 'UIWidget' : 'any';
+}
+
+/** Builds the LuaLS-visible global declarations shared by every LUI shadow. */
+function buildLuaBindingsDocument(globals, bindGlobalType = 'any') {
+  const luaType = normalizeBindGlobalType(bindGlobalType);
+  const declarations = [...globals.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([name, definitions]) => {
+      const definition = definitions.at(-1);
+      const sourceUri = typeof definition.uri === 'string'
+        ? definition.uri
+        : definition.uri.toString();
+      return [
+        `---@source ${sourceUri}:${definition.line + 1}`,
+        `---@type ${luaType}`,
+        `${name} = nil`
+      ];
+    });
+  return [
+    '---@diagnostic disable: lowercase-global, duplicate-set-field',
+    '-- Generated from Luna UI @bind declarations. Do not edit.',
+    ...declarations,
+    ''
+  ].join('\n');
+}
+
 /** Creates a valid Lua shadow document while retaining source line mapping. */
-function buildLuaVirtualDocument(text, sourceUri) {
+function buildLuaVirtualDocument(text, sourceUri, bindGlobalType = 'any') {
+  const luaType = normalizeBindGlobalType(bindGlobalType);
   const parsed = core.parseDocument(text);
   const expressions = core.collectLuaExpressions(parsed);
   const lines = ['---@diagnostic disable: lowercase-global, duplicate-set-field'];
@@ -16,7 +45,7 @@ function buildLuaVirtualDocument(text, sourceUri) {
 
     if (expression.mode === 'global') {
       if (sourceUri) lines.push(`---@source ${sourceUri}:${expression.binding.line + 1}`);
-      lines.push('---@type UIWidget');
+      lines.push(`---@type ${luaType}`);
       const virtualLine = lines.length;
       lines.push(`${expression.code} = nil`);
       mappings.push({
@@ -110,6 +139,7 @@ function virtualToSource(mapping, line, character) {
 }
 
 module.exports = {
+  buildLuaBindingsDocument,
   buildLuaVirtualDocument,
   closestMappingAtOrBefore,
   mappingAtSource,

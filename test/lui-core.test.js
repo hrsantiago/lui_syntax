@@ -7,6 +7,7 @@ const test = require('node:test');
 const core = require('../lui-core');
 const luaEmbedding = require('../lua-embedding');
 const assetUtils = require('../asset-utils');
+const fontAwesomeUtils = require('../fontawesome-utils');
 
 test('parses declarations, properties, widgets and inline lists', () => {
   const parsed = core.parseDocument([
@@ -123,10 +124,32 @@ test('lowers @slot, @field and @bind into valid Lua-oriented shadow code', () =>
   const embedded = luaEmbedding.buildLuaVirtualDocument(source, 'file:///game/ui/panel.lui');
   assert.match(embedded.content, /e_panel = nil/);
   assert.match(embedded.content, /---@source file:\/\/\/game\/ui\/panel\.lui:2/);
+  assert.match(embedded.content, /---@type any/);
+  assert.doesNotMatch(embedded.content, /---@type UIWidget/);
   assert.match(embedded.content, /local __lui_expression_2 = function\(value\)/);
   assert.match(embedded.content, /local function __lui_slot_3\(self, \.\.\.\)/);
   assert.match(embedded.content, /togglePanel\(e_panel\)/);
   assert.doesNotMatch(embedded.content, /200ms/);
+});
+
+test('can opt into strict UIWidget annotations for @bind globals', () => {
+  const embedded = luaEmbedding.buildLuaVirtualDocument(
+    'Widget < UIWidget\n  @bind self: e_panel',
+    'file:///game/ui/panel.lui',
+    'UIWidget'
+  );
+  assert.match(embedded.content, /---@type UIWidget/);
+});
+
+test('builds a dynamic global cache without UIWidget type diagnostics', () => {
+  const globals = new Map([
+    ['e_panel', [{ uri: 'file:///game/ui/panel.lui', line: 7 }]],
+    ['e_label', [{ uri: 'file:///game/ui/panel.lui', line: 11 }]]
+  ]);
+  const cache = luaEmbedding.buildLuaBindingsDocument(globals);
+  assert.match(cache, /---@source file:\/\/\/game\/ui\/panel\.lui:8/);
+  assert.match(cache, /---@type any\ne_panel = nil/);
+  assert.doesNotMatch(cache, /---@type UIWidget/);
 });
 
 test('@bind child declares its environment variable and smart bind keeps its Lua reference', () => {
@@ -274,6 +297,27 @@ test('discovers assets inside, beside or as the opened workspace folder', () => 
   const openedCandidates = assetUtils.candidateAssetPaths('/assets/icon', openedAssets, undefined, ['png']);
   assert.ok(openedCandidates.indexOf(path.resolve('/repo/assets/icon.png'))
     < openedCandidates.indexOf(path.resolve('/repo/assets/assets/icon.png')));
+});
+
+test('parses static Font Awesome references used by Luna UI', () => {
+  assert.deepEqual(fontAwesomeUtils.parseFontAwesomeSource('@FontAwesome-rounded-18sp-xf04b'), {
+    source: '@FontAwesome-rounded-18sp-xf04b',
+    style: 'rounded',
+    size: '18sp',
+    hexadecimal: 'f04b',
+    codepoint: 0xf04b
+  });
+  assert.equal(fontAwesomeUtils.parseFontAwesomeSource("'@FontAwesome-flat-0.8em-x58'").codepoint, 0x58);
+  assert.equal(fontAwesomeUtils.parseFontAwesomeSource('@FontAwesome-flat-xf00d'), undefined);
+});
+
+test('discovers Font Awesome below assets/fonts for common workspace layouts', () => {
+  const directories = fontAwesomeUtils.automaticFontDirectories(
+    path.resolve('/game/modules/hunt'), [path.resolve('/game/modules')]);
+  assert.ok(directories.includes(path.resolve('/game/assets/fonts')));
+  const assetsWorkspace = fontAwesomeUtils.automaticFontDirectories(
+    path.resolve('/game/assets/ui'), [path.resolve('/game/assets')]);
+  assert.ok(assetsWorkspace.includes(path.resolve('/game/assets/fonts')));
 });
 
 test('loads LML color aliases in document order', () => {
