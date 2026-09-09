@@ -2,25 +2,15 @@
 
 ## 0.1.6
 
-- `.luna-ui-cache` agora fica oculto por padrão no Explorer e nas pesquisas do VS Code.
-- O cache continua fisicamente no workspace e disponível ao LuaLS, preservando globals, diagnósticos e Ctrl+Click.
-- As exclusões são defaults mescláveis e podem ser sobrescritas pelo usuário com `"**/.luna-ui-cache": false`.
-
-- Globals gerados por `@bind` passam a usar `---@type any` por padrão, refletindo os widgets extensíveis do runtime Lua.
-- Removidos os falsos positivos `undefined-doc-name` no cache quando `UIWidget` não existe como tipo LuaLS.
-- Removidos os falsos positivos `inject-field` em campos adicionados pelo projeto, como `config` e `mustRequest`.
-- Adicionado `lunaUI.luaIntegration.bindGlobalType` para projetos que desejem optar explicitamente pela tipagem estrita `UIWidget`.
-
-- Referências estáticas de imagens e Font Awesome agora permanecem destacadas apenas pela cor azul-ciano `#4FC1FF`.
-- A configuração do destaque passa a ser `lunaUI.assets.referenceHighlight.enabled`.
-- Referências clicáveis de imagens e Font Awesome agora pulsam brevemente em ciano ao abrir o hover.
-- Adicionado `lunaUI.assets.hoverFeedback.enabled` para desativar somente a animação, preservando prévias e Ctrl+Click.
-
 - Adicionada prévia no hover para referências estáticas `@FontAwesome-estilo-tamanho-xcodigo`.
 - Fontes Font Awesome são descobertas automaticamente em `/assets/fonts/`, inclusive quando `assets` é o workspace ou está em algum diretório pai.
 - Adicionado `lunaUI.fontAwesome.fontPath` como fallback configurável para um arquivo ou diretório de fontes.
 - A prévia usa a fonte local do projeto e não redistribui arquivos Font Awesome Pro no VSIX.
 - Ctrl+Click em uma referência Font Awesome abre a fonte efetivamente utilizada.
+- Referências estáticas de imagens e Font Awesome permanecem destacadas pela cor azul-ciano `#4FC1FF`, sem animação, fundo ou pulso.
+- Globals gerados por `@bind` passam a usar `---@type any` por padrão, evitando falsos positivos `undefined-doc-name` e `inject-field` do LuaLS.
+- Adicionado `lunaUI.luaIntegration.bindGlobalType` para projetos que desejem optar explicitamente pela tipagem estrita `UIWidget`.
+- `.luna-ui-cache` agora fica oculto por padrão no Explorer e nas pesquisas, mas permanece disponível ao LuaLS para globals, diagnósticos e Ctrl+Click.
 
 ## 0.1.5
 

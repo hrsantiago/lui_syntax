@@ -7,7 +7,7 @@ const pkg = require('../package.json');
 test('preserves the published Marketplace identity', () => {
   assert.equal(pkg.publisher, 'Pedrilsk');
   assert.equal(pkg.name, 'lui-language');
-  assert.equal(pkg.version, '0.1.10');
+  assert.equal(pkg.version, '0.1.6');
 });
 
 test('preserves the 0.1.x LUI language contract', () => {
