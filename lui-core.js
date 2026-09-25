@@ -3,8 +3,10 @@
 const COMMANDS = [
   '@transition', '@field', '@slot', '@slotRet', '@forward-state',
   '@animation', '@sound', '@repeat', '@inherit-property',
-  '@custom-state', '@bind', '@undef'
+  '@custom-state', '@bind', '@undef', '@onLoad', '@onUnload'
 ];
+
+const BUILTIN_ELEMENTS = ['Module'];
 
 const STATES = [
   'active', 'focus', 'hover', 'pressed', 'leftpressed', 'rightpressed',
@@ -390,6 +392,7 @@ function parseDeclaration(tag) {
   if (clean.qualifierError) return { kind: 'invalid', error: clean.qualifierError };
   const value = clean.tag;
   if (!value) return { kind: 'qualifier-only' };
+  if (value === 'Module') return { kind: 'module', name: value };
   if (value.startsWith('.')) return { kind: 'class', name: value.slice(1).trim() };
   if (value.startsWith('@undef ')) return { kind: 'undef', name: value.slice(7).trim() };
   const lt = value.indexOf('<');
@@ -476,9 +479,9 @@ function validateAnimation(node) {
     issues.push(diagnostic(node.line, 0, node.raw.length, 'error', 'lui-animation-direction',
       `Direção de loop inválida: “${args[2]}”.`));
   }
-  if (args[3] && parseSeconds(args[3]) === undefined) {
+  if (args[3] && args[3] !== '0' && parseSeconds(args[3]) === undefined) {
     issues.push(diagnostic(node.line, 0, node.raw.length, 'error', 'lui-animation-loop-interval',
-      'O intervalo do loop precisa usar “s” ou “ms”.'));
+      'O intervalo do loop precisa ser 0 ou usar “s/ms”.'));
   }
   if (args[4] && !/^-?\d+$/.test(args[4])) {
     issues.push(diagnostic(node.line, 0, node.raw.length, 'error', 'lui-animation-loop-factor',
@@ -627,7 +630,8 @@ function validateSemantics(parsed, context = {}) {
     }
     if (!node.unique) {
       const elementName = stripped.split('.')[0];
-      if (!elementName.startsWith('UI') && !elements.has(elementName) && unknownElements !== 'off') {
+      if (!elementName.startsWith('UI') && !BUILTIN_ELEMENTS.includes(elementName)
+          && !elements.has(elementName) && unknownElements !== 'off') {
         issues.push(diagnostic(node.line, node.indent, node.raw.length, unknownElements,
           'lui-unknown-element', `Widget “${elementName}” não foi encontrado.`));
       }
@@ -678,6 +682,93 @@ function findLocalDefinitions(parsed, name, kind) {
   const symbols = collectLocalSymbols(parsed);
   const entries = kind === 'class' ? symbols.classes : symbols.elements;
   return entries.filter(entry => entry.name === name);
+}
+
+function isWidgetNode(node) {
+  if (!node || node.document || node.unique || node.listItem) return false;
+  const tag = stripQualifier(node.tag).tag;
+  if (!tag || tag.startsWith('@') || tag.startsWith('$') || tag.startsWith('.')) return false;
+  const declaration = parseDeclaration(tag);
+  return declaration.kind === 'element' || declaration.kind === 'module'
+    || /^[A-Za-z_][\w-]*(?:\.[\w-]+)*$/.test(tag);
+}
+
+function owningWidget(node) {
+  let current = node;
+  while (current && !current.document) {
+    if (isWidgetNode(current)) return current;
+    current = current.parent;
+  }
+  return undefined;
+}
+
+function enclosingDeclaration(node) {
+  let current = node;
+  while (current?.parent && !current.parent.document) current = current.parent;
+  return current && !current.document ? current : undefined;
+}
+
+function idDefinitions(scope, name) {
+  const found = [];
+  const visit = node => {
+    if (node.unique && stripQualifier(node.tag).tag === 'id' && node.value === name) found.push(node);
+    for (const child of node.children || []) visit(child);
+  };
+  if (scope) visit(scope);
+  return found;
+}
+
+/** Resolves parent/prev/next and widget ids used by anchor properties. */
+function findAnchorDefinition(parsed, line, character, name) {
+  const property = parsed.nodes.find(node => node.line === line);
+  if (!property?.unique || !property.value) return undefined;
+  const propertyTag = stripQualifier(property.tag).tag;
+  if (propertyTag.startsWith('!') || !propertyTag.startsWith('anchors.')) return undefined;
+  const colon = property.raw.indexOf(':');
+  const valueStart = property.raw.indexOf(property.value, Math.max(0, colon + 1));
+  if (character < valueStart || character > valueStart + property.value.length) return undefined;
+
+  const owner = owningWidget(property.parent);
+  if (!owner) return undefined;
+  if (name === 'parent') {
+    return { kind: 'parent', target: owningWidget(owner.parent) };
+  }
+  if (name === 'prev' || name === 'next') {
+    const siblings = (owner.parent?.children || []).filter(isWidgetNode);
+    const ownerIndex = siblings.indexOf(owner);
+    const targetIndex = name === 'prev' ? ownerIndex - 1 : ownerIndex + 1;
+    return { kind: name, target: targetIndex >= 0 ? siblings[targetIndex] : undefined };
+  }
+
+  const localScope = enclosingDeclaration(owner);
+  const local = idDefinitions(localScope, name);
+  if (local.length === 1) return { kind: 'id', target: local[0] };
+  if (local.length > 1) return undefined;
+  const documentMatches = parsed.root.children.flatMap(root => idDefinitions(root, name));
+  return documentMatches.length === 1 ? { kind: 'id', target: documentMatches[0] } : undefined;
+}
+
+function collectAnchorReferences(parsed) {
+  const references = [];
+  for (const node of parsed.nodes) {
+    if (!node.unique || !node.value) continue;
+    const propertyTag = stripQualifier(node.tag).tag;
+    if (propertyTag.startsWith('!') || !propertyTag.startsWith('anchors.')) continue;
+    const match = /^([A-Za-z_][\w-]*)/.exec(node.value);
+    if (!match) continue;
+    const colon = node.raw.indexOf(':');
+    const valueStart = node.raw.indexOf(node.value, Math.max(0, colon + 1));
+    const definition = findAnchorDefinition(parsed, node.line, valueStart, match[1]);
+    if (!definition?.target) continue;
+    references.push({
+      name: match[1],
+      line: node.line,
+      start: valueStart,
+      end: valueStart + match[1].length,
+      definition
+    });
+  }
+  return references;
 }
 
 function expressionValue(node) {
@@ -742,7 +833,8 @@ function collectLuaExpressions(parsed) {
     const isField = command === '@field';
     const isSlot = command === '@slot' || command === '@slotRet';
     const isBindReference = command === '@bind';
-    if (!dynamic && !isField && !isSlot && !isBindReference) continue;
+    const isModuleLifecycle = command === '@onLoad' || command === '@onUnload';
+    if (!dynamic && !isField && !isSlot && !isBindReference && !isModuleLifecycle) continue;
     const code = expressionValue(node);
     const segments = luaSegments(node, code);
     expressions.push({
@@ -752,7 +844,7 @@ function collectLuaExpressions(parsed) {
       end: segments.at(-1)?.end ?? node.raw.length,
       segments,
       tag: dynamic ? effectiveTag : tag,
-      mode: isSlot && !code.trimStart().startsWith('function') ? 'chunk' : 'expression',
+      mode: (isSlot || isModuleLifecycle) && !code.trimStart().startsWith('function') ? 'chunk' : 'expression',
       node
     });
   }
@@ -857,6 +949,7 @@ function buildStyleModel(files) {
 
 module.exports = {
   ALIGNMENTS,
+  BUILTIN_ELEMENTS,
   BUILTIN_COLOR_ALIASES,
   BUILTIN_COLOR_VALUES,
   COMMANDS,
@@ -869,12 +962,14 @@ module.exports = {
   STATES,
   UNITS,
   buildStyleModel,
+  collectAnchorReferences,
   collectLuaBindings,
   collectLuaExpressions,
   collectLocalSymbols,
   collectColorAliases,
   inspectColor,
   formatHexColor,
+  findAnchorDefinition,
   findLocalDefinitions,
   isDPUnit,
   parseDeclaration,

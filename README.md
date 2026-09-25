@@ -20,12 +20,12 @@ Extensão do VS Code publicada como **`Pedrilsk.lui-language`** para a linguagem
   - cores hexadecimais malformadas;
   - quantidade e formato de valores `DPUnit`, `Point`, `Size` e `Rect`.
 - Autocomplete de elementos, classes, aliases de cor, propriedades, comandos, estados, unidades e valores enumerados.
-- Ir para definição de elementos, classes de estilo e aliases de cor do projeto.
+- Ir para definição de elementos, classes de estilo, aliases de cor e referências estruturais de anchors (`parent`, `prev`, `next` e IDs locais).
 - Hover, símbolos do documento e folding por indentação.
 - Indexação automática de `.lui`/`.lml`/`.otml`, heranças `extends/newclass` em Lua, aliases `Color::registerAlias` e propriedades encontradas em parsers C++/Lua.
 - Suporte próprio a color schemes `.lml`, com destaque de aliases e hex, diagnóstico, autocomplete, hover e Ctrl+Click.
 - Amostras de cor nativas do editor para hex, aliases `.lml` e cadeias de aliases usadas em `.lui`.
-- Prévia no hover e Ctrl+Click para abrir assets locais de `image-source`, `icon-source` e variantes `*-image-source`.
+- Prévia no hover, abertura, localização no sistema e cópia para o clipboard de assets locais de `image-source`, `icon-source` e variantes `*-image-source`.
 - Fontes de styles externas e ordenadas, com resolução de `@undef` e sobrescritas como no `UIStyler`.
 - Regiões Lua embutidas em valores de `!property` e nos comandos Lua `@slot`, `@slotRet`, `@field` e `@bind`, usando a extensão Lua já instalada no VS Code.
 - Comando **Luna UI: Reindex Workspace**.
@@ -35,7 +35,7 @@ Extensão do VS Code publicada como **`Pedrilsk.lui-language`** para a linguagem
 
 1. Abra a paleta de comandos do VS Code.
 2. Execute **Extensions: Install from VSIX...**.
-3. Selecione `lui-language-0.1.8.vsix`.
+3. Selecione `lui-language-0.1.7.vsix`.
 4. Abra a pasta do game. Os styles globais podem ficar fora dela e ser apontados por configuração.
 
 Para usar ou empacotar o código-fonte, execute `npm install` uma vez. Para depurar, abra esta pasta no VS Code e pressione `F5`.
@@ -56,7 +56,7 @@ As propriedades de widgets variam entre os games. Por isso, `lunaUI.diagnostics.
 
 ## Styles externos e ordem de load
 
-Quando `lunaUI.styleSources` está vazio, a extensão procura `.lui`, `.lml` e `.otml` no workspace. Quando a opção contém fontes, somente esses caminhos alimentam o índice de styles; os `.lua` e C++ do game continuam sendo encontrados normalmente no workspace aberto.
+Quando `lunaUI.styleSources` está vazio, a extensão procura `.lui`, `.lml` e `.otml` no workspace. Quando a opção contém fontes, esses caminhos definem a ordem dos styles externos, enquanto os arquivos do workspace continuam complementando o índice sem interferir em `@undef` ou sobrescritas. Os diretórios externos também podem fornecer símbolos Lua/C++ por meio de `scanCode`.
 
 A ordem do array é a ordem entre fontes. Dentro de uma fonte, `files` define a ordem exata. Sem `files`, a pasta é percorrida recursivamente em ordem alfabética de caminho, mas essa ordem é considerada apenas uma descoberta: a extensão não gera diagnósticos “ainda não carregado neste ponto” porque não pode afirmar que ela corresponde ao runtime.
 
@@ -72,11 +72,11 @@ A ordem do array é a ordem entre fontes. Dentro de uma fonte, `files` define a 
       ]
     },
     {
-      "name": "Game",
-      "path": "${workspaceFolder}/styles",
+      "name": "UIKit",
+      "path": "D:/dev/luna/modules/uikit",
+      "scanCode": true,
       "files": [
-        "theme-game.lui",
-        "windows"
+        "styles"
       ]
     }
   ]
@@ -86,6 +86,10 @@ A ordem do array é a ordem entre fontes. Dentro de uma fonte, `files` define a 
 Também são aceitos `${workspaceFolder:nome}`, `${env:VAR}` e `~`. Uma entrada de `files` pode ser arquivo ou pasta; pastas são expandidas recursivamente. Use **Luna UI: Show Style Load Order** para conferir a sequência resolvida e quais definições foram removidas ou substituídas.
 
 O modelo respeita `@undef`: ele remove a definição ativa naquele ponto. Repetir um elemento sem `@undef` gera aviso, embora a declaração mais nova passe a ser a ativa, igual ao comportamento observado no runtime. Classes `.nome` posteriores também substituem as anteriores.
+
+As fontes configuradas definem somente a ordem oficial usada para `@undef`, heranças e sobrescritas. Os demais `.lui` do workspace continuam sendo descobertos como símbolos suplementares para autocomplete, diagnósticos e Ctrl+Click. Assim, um widget declarado em outro arquivo do mesmo módulo não precisa ser incluído artificialmente em `styleSources`.
+
+Por padrão, diretórios em `styleSources` também são percorridos em busca de `.lua`, `.cpp`, `.cc`, `.cxx`, `.h` e `.hpp`. Classes criadas por `extends/newclass`, bindings nativos e propriedades dinâmicas externas passam a complementar o índice, mas nunca alteram a ordem dos styles. Em uma fonte muito grande que contenha apenas markup, use `"scanCode": false`. O relatório **Luna UI: Show Style Load Order** informa quantos arquivos externos de código foram adicionados por fonte.
 
 ## Color schemes `.lml`
 
@@ -101,7 +105,7 @@ A extensão valida nomes, cores hexadecimais, aliases ausentes, autorreferência
 
 Um quadrado com a cor final aparece ao lado de referências como `button-idle`, inclusive quando a resolução passa por mais de um alias. O hover também informa o hexadecimal final e a cadeia percorrida. Isso usa o recurso nativo de cores do VS Code; mantenha `editor.colorDecorators` e `lunaUI.colors.decorations.enabled` ativados.
 
-Quando `lunaUI.styleSources` está configurado, o `.lml` precisa estar em uma das pastas informadas ou aparecer na lista `files`, como qualquer outro arquivo de style. Depois de adicionar o caminho, execute **Luna UI: Reindex Workspace**.
+Arquivos `.lml` dentro do workspace também complementam o índice automaticamente. Esquemas externos ao workspace devem aparecer em `lunaUI.styleSources`. Depois de alterar os caminhos, execute **Luna UI: Reindex Workspace**.
 
 ## Prévia de imagens e ícones
 
@@ -146,6 +150,8 @@ Para assets que a descoberta automática não encontra ou quando a raiz virtual 
 
 No primeiro mount, `/assets/images_ui/icon` resolve para `D:/dev/my-game/assets/images_ui/icon.png` (ou a primeira extensão existente). Strings simples em `lunaUI.assets.sources` equivalem a um mount com prefixo `/`. Os mesmos placeholders de `styleSources` são aceitos.
 
+Ao passar o mouse sobre uma imagem resolvida, o hover oferece **Abrir imagem**, **Mostrar na pasta**, **Copiar caminho** e **Copiar imagem**. No Windows, a cópia da imagem aceita PNG, JPG/JPEG, GIF, BMP e ICO; no macOS usa o clipboard nativo; no Linux requer `wl-copy` ou `xclip`. Formatos que o clipboard do sistema não consegue decodificar continuam disponíveis para abrir, localizar e copiar o caminho.
+
 ### Font Awesome
 
 Referências estáticas como `@FontAwesome-rounded-18sp-xf04b` também recebem prévia no hover. A extensão extrai estilo, tamanho e código Unicode e desenha o glifo usando a fonte real do projeto, inclusive fontes Font Awesome Pro que não podem ser redistribuídas no VSIX.
@@ -160,7 +166,7 @@ Se a fonte estiver em outro lugar, configure um arquivo específico ou uma pasta
 }
 ```
 
-O hover informa `U+F04B`, estilo, tamanho e o arquivo de fonte escolhido. Ctrl+Click abre esse arquivo. Referências montadas dinamicamente por Lua continuam sob responsabilidade da integração Lua.
+O hover informa `U+F04B`, estilo, tamanho, nome do glifo quando disponível e o arquivo de fonte escolhido. A ação **Pesquisar no Font Awesome** abre a busca oficial já preenchida com o nome do ícone ou, como fallback, seu código hexadecimal. **Abrir fonte** e Ctrl+Click abrem o arquivo local usado na prévia. A cópia de imagem não é oferecida para Font Awesome. Referências montadas dinamicamente por Lua continuam sob responsabilidade da integração Lua.
 
 ## Ambiente Lua em `!` e comandos `@`
 
@@ -172,9 +178,11 @@ Não é necessário configurar um executável Lua. Instale e configure normalmen
 @field formatter: function(value) return tostring(value) end
 @slot onClick: togglePanel(self)
 @bind self: e_panel
+@onLoad: init()
+@onUnload: terminate()
 ```
 
-`!height:` e `!@transition rotation:` avaliam o conteúdo depois de `:` como expressão Lua. `@field` também avalia uma expressão, enquanto `@slot` e `@slotRet` carregam callbacks/corpos Lua. A extensão Lua instalada fornece realce, autocomplete, hover, assinatura de funções, ir para definição e diagnósticos. As posições são traduzidas de volta para o `.lui`.
+`!height:` e `!@transition rotation:` avaliam o conteúdo depois de `:` como expressão Lua. `@field` também avalia uma expressão, enquanto `@slot`, `@slotRet`, `@onLoad` e `@onUnload` carregam callbacks/corpos Lua. `Module` é reconhecido como a raiz nativa de um `.lmod`. A extensão Lua instalada fornece realce, autocomplete, hover, assinatura de funções, ir para definição e diagnósticos. As posições são traduzidas de volta para o arquivo de origem.
 
 `@bind self: e_panel` e `@bind child: childId e_child` declaram `e_panel`/`e_child` no ambiente Lua global, reproduzindo `getglobalenv()` do runtime. A extensão gera `.luna-ui-cache/luna-ui-bindings.lua` com essas declarações, permitindo autocomplete e Ctrl+Click tanto do `.lui` para arquivos Lua externos quanto de um `.lua` para o `@bind` que declarou o objeto.
 
@@ -207,6 +215,10 @@ A integração começa ativada. Se necessário, pode ser desligada com:
   "lunaUI.luaIntegration.enabled": false
 }
 ```
+
+Quando essa opção é `false`, todo o bridge é desligado: a extensão não ativa o provider Lua instalado, não cria documentos-sombra ou meta, não oferece diagnósticos/autocomplete/hover/assinaturas/definições Lua e remove somente os arquivos que ela própria gerou em `.luna-ui-cache`. Os recursos nativos de Luna UI continuam funcionando normalmente.
+
+Diagnósticos `Unnecessary` do LuaLS continuam sendo apresentados quando pertencem ao código do usuário, mas a tag visual que reduz a opacidade é removida no `.lui`. Avisos originados apenas pelos wrappers técnicos do arquivo-sombra são descartados; erros reais de sintaxe, inclusive os reportados no fim do arquivo, continuam apontando para a expressão de origem.
 
 ## Regras OTML implementadas
 

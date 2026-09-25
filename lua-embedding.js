@@ -6,6 +6,17 @@ function normalizeBindGlobalType(value) {
   return value === 'UIWidget' ? 'UIWidget' : 'any';
 }
 
+function isGeneratedLuaCacheFile(name, content) {
+  const fileName = String(name || '');
+  const text = String(content || '');
+  if (fileName === 'luna-ui-bindings.lua') {
+    return text.includes('Generated from Luna UI @bind declarations');
+  }
+  if (!/-[0-9a-f]{12}\.lua$/i.test(fileName)) return false;
+  return text.includes('Generated Luna UI LuaLS shadow')
+    || text.startsWith('---@diagnostic disable: lowercase-global, duplicate-set-field\n-- ');
+}
+
 /** Builds the LuaLS-visible global declarations shared by every LUI shadow. */
 function buildLuaBindingsDocument(globals, bindGlobalType = 'any') {
   const luaType = normalizeBindGlobalType(bindGlobalType);
@@ -35,7 +46,10 @@ function buildLuaVirtualDocument(text, sourceUri, bindGlobalType = 'any') {
   const luaType = normalizeBindGlobalType(bindGlobalType);
   const parsed = core.parseDocument(text);
   const expressions = core.collectLuaExpressions(parsed);
-  const lines = ['---@diagnostic disable: lowercase-global, duplicate-set-field'];
+  const lines = [
+    '---@diagnostic disable: lowercase-global, duplicate-set-field',
+    '-- Generated Luna UI LuaLS shadow. Do not edit.'
+  ];
   const mappings = [];
 
   expressions.forEach((expression, index) => {
@@ -142,6 +156,7 @@ module.exports = {
   buildLuaBindingsDocument,
   buildLuaVirtualDocument,
   closestMappingAtOrBefore,
+  isGeneratedLuaCacheFile,
   mappingAtSource,
   mappingAtVirtual,
   sourceToVirtual,

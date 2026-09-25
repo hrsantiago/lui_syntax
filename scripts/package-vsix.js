@@ -55,6 +55,7 @@ const manifest = `<?xml version="1.0" encoding="utf-8"?>
     <Description xml:space="preserve">${escapeXml(pkg.description)}</Description>
     <Tags>${escapeXml(pkg.keywords.join(','))}</Tags>
     <Categories>${escapeXml(pkg.categories.join(','))}</Categories>
+    <GalleryFlags>Public</GalleryFlags>
     <Properties>
       <Property Id="Microsoft.VisualStudio.Code.Engine" Value="${escapeXml(pkg.engines.vscode)}" />
       <Property Id="Microsoft.VisualStudio.Services.GitHubFlavoredMarkdown" Value="true" />

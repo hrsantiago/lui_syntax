@@ -26,7 +26,7 @@
       "patterns": [
         {
           "name": "meta.directive.lua-block.luna-ui",
-          "begin": "^([ \\t]*)(!)(@(?:transition|animation|field|slotRet|slot|forward-state|sound|repeat|inherit-property|custom-state|bind))(?:(\\s+)([^:]+))?(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
+          "begin": "^([ \\t]*)(!)(@(?:transition|animation|field|slotRet|slot|forward-state|sound|repeat|inherit-property|custom-state|bind|onLoad|onUnload))(?:(\\s+)([^:]+))?(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
           "beginCaptures": {
             "2": { "name": "keyword.operator.expression.luna-ui" },
             "3": { "name": "keyword.control.directive.luna-ui" },
@@ -56,7 +56,7 @@
         },
         {
           "name": "meta.directive.lua-block.luna-ui",
-          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(@(?:slotRet|slot|field|bind))(?:(\\s+)([^:]+))?(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
+          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(@(?:slotRet|slot|field|bind|onLoad|onUnload))(?:(\\s+)([^:]+))?(\\s*:)(\\s*)(\\|[+-]?)\\s*$",
           "beginCaptures": {
             "2": { "name": "meta.qualifier.luna-ui" },
             "3": { "name": "keyword.control.directive.luna-ui" },
@@ -92,7 +92,7 @@
         },
         {
           "name": "meta.directive.lua-expression.luna-ui",
-          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(@(?:slotRet|slot|field|bind))(?:(\\s+)([^:]+?))?(\\s*:)(\\s*)",
+          "begin": "^([ \\t]*)((?:\\*(?:\\([^)]*\\)|\\S+)\\s+)*)(@(?:slotRet|slot|field|bind|onLoad|onUnload))(?:(\\s+)([^:]+?))?(\\s*:)(\\s*)",
           "beginCaptures": {
             "2": { "name": "meta.qualifier.luna-ui" },
             "3": { "name": "keyword.control.directive.luna-ui" },
@@ -109,6 +109,12 @@
     },
     "declarations": {
       "patterns": [
+        {
+          "match": "^(\\s*)(Module)\\s*$",
+          "captures": {
+            "2": { "name": "entity.name.type.luna-ui" }
+          }
+        },
         {
           "match": "^(\\s*)(\\.[A-Za-z_][\\w-]*)(?:\\s*)$",
           "captures": {
@@ -129,6 +135,13 @@
     },
     "commands": {
       "patterns": [
+        {
+          "match": "^([ \\t]*)(@(?:onLoad|onUnload))(\\s*:)",
+          "captures": {
+            "2": { "name": "keyword.control.directive.luna-ui" },
+            "3": { "name": "punctuation.separator.key-value.luna-ui" }
+          }
+        },
         {
           "match": "^([ \\t]*)(!)?(@(?:slotRet|slot))(\\s+)([^:]+?)(\\s*:)",
           "captures": {

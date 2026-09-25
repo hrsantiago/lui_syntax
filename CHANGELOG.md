@@ -1,7 +1,26 @@
 # Changelog
 
+## 0.1.7
+
+- `lunaUI.luaIntegration.enabled` agora desativa integralmente o bridge Lua/LuaLS, inclusive providers, ativação da extensão Lua, diagnósticos e geração de cache/meta.
+- Ao desligar a integração, arquivos-sombra e bindings gerados pela extensão são removidos com segurança de `.luna-ui-cache`; arquivos desconhecidos do usuário são preservados.
+- O hover de imagens locais agora oferece ações para abrir a imagem, mostrá-la no gerenciador de arquivos, copiar seu caminho e copiar a própria imagem para o clipboard.
+- O hover de Font Awesome agora identifica o nome do glifo quando disponível e abre a busca oficial já preenchida; a opção de copiar imagem não é exibida para esses ícones.
+
 ## 0.1.6
 
+- Referências resolvíveis `parent`, `prev`, `next` e IDs em `anchors.*` agora usam permanentemente a cor de link do tema para indicar Ctrl+Click, sem animação ou hover artificial.
+- Adicionada a opção `lunaUI.navigation.referenceHighlight.enabled` para controlar esse destaque.
+- Removida a transparência aplicada pelo VS Code a trechos Lua marcados com `DiagnosticTag.Unnecessary`; avisos úteis continuam visíveis sem esmaecer o código.
+- Diagnósticos não mapeados de funções/variáveis técnicas do arquivo-sombra deixam de ser projetados sobre o Lua real; erros de parser em EOF, como `function()` sem `end`, continuam sendo remapeados.
+- Ctrl+Click em `parent`, `prev` e `next` dentro de propriedades `anchors.*` agora navega para o widget estrutural correspondente.
+- Ctrl+Click em referências como `anchors.top: analyzerOptions.bottom` navega para o `id: analyzerOptions` correto, priorizando a declaração-raiz atual para evitar IDs homônimos.
+- Corrigida a descoberta de widgets declarados em outros `.lui` do workspace quando `lunaUI.styleSources` está configurado; esses arquivos complementam o índice sem alterar a ordem de `@undef`/sobrescritas.
+- Diretórios externos configurados em `lunaUI.styleSources` agora também fornecem símbolos de `.lua`, `.cpp` e headers, permitindo reconhecer classes/APIs do Luna e do UIKit sem abrir seus projetos no workspace.
+- `scanCode` controla essa leitura por fonte e **Luna UI: Show Style Load Order** exibe a quantidade de arquivos de código externos indexados.
+- `Module` agora é reconhecido como raiz nativa de arquivos `.lmod`.
+- `@onLoad` e `@onUnload` agora são comandos válidos e seus valores/blocos são encaminhados à integração Lua.
+- O intervalo de loop de `@animation` aceita `0` sem exigir `0ms`; outros valores continuam exigindo `s` ou `ms`.
 - Adicionada prévia no hover para referências estáticas `@FontAwesome-estilo-tamanho-xcodigo`.
 - Fontes Font Awesome são descobertas automaticamente em `/assets/fonts/`, inclusive quando `assets` é o workspace ou está em algum diretório pai.
 - Adicionado `lunaUI.fontAwesome.fontPath` como fallback configurável para um arquivo ou diretório de fontes.

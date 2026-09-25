@@ -7,6 +7,7 @@ const test = require('node:test');
 const core = require('../lui-core');
 const luaEmbedding = require('../lua-embedding');
 const assetUtils = require('../asset-utils');
+const assetActions = require('../asset-actions');
 const fontAwesomeUtils = require('../fontawesome-utils');
 
 test('parses declarations, properties, widgets and inline lists', () => {
@@ -61,6 +62,54 @@ test('finds class and element definitions declared in the current LUI document',
   assert.deepEqual(core.findLocalDefinitions(parsed, 'CreatorOrderFieldLabel', 'element').map(item => item.line), [1]);
 });
 
+test('resolves parent, prev, next and ids used by anchors', () => {
+  const parsed = core.parseDocument([
+    'Analyzer < Panel',
+    '  Panel',
+    '    id: analyzerOptions',
+    '  Panel',
+    '    Label',
+    '      id: sessionTimerLabel',
+    '      anchors.verticalCenter: parent.verticalCenter',
+    '    Panel',
+    '      id: buttons',
+    '      anchors.left: prev.right',
+    '  VerticalScrollBar',
+    '    id: contentsScrollBar',
+    '    anchors.top: analyzerOptions.bottom',
+    '    anchors.left: next.right',
+    '    anchors.right: missing.left',
+    '  Label',
+    '    id: footer'
+  ].join('\n'));
+  const at = (line, token) => core.findAnchorDefinition(
+    parsed, line, parsed.lines[line].indexOf(token), token);
+
+  assert.equal(at(6, 'parent').target.line, 3);
+  assert.equal(at(9, 'prev').target.line, 4);
+  assert.equal(at(12, 'analyzerOptions').target.line, 2);
+  assert.equal(at(13, 'next').target.line, 15);
+  assert.deepEqual(
+    core.collectAnchorReferences(parsed).map(reference => reference.name),
+    ['parent', 'prev', 'analyzerOptions', 'next']
+  );
+});
+
+test('keeps anchor id navigation inside the current root declaration', () => {
+  const parsed = core.parseDocument([
+    'First < Panel',
+    '  Panel',
+    '    id: shared',
+    'Second < Panel',
+    '  Panel',
+    '    id: shared',
+    '  Label',
+    '    anchors.top: shared.bottom'
+  ].join('\n'));
+  const result = core.findAnchorDefinition(parsed, 7, parsed.lines[7].indexOf('shared'), 'shared');
+  assert.equal(result.target.line, 5);
+});
+
 test('validates transitions and animations using runtime ordering', () => {
   const parsed = core.parseDocument([
     'Widget < UIWidget',
@@ -71,6 +120,47 @@ test('validates transitions and animations using runtime ordering', () => {
   ].join('\n'));
   const issues = core.validateSemantics(parsed, { elements: new Set(['Widget']) });
   assert.equal(issues.filter(item => item.severity === 'error').length, 0);
+});
+
+test('accepts zero without a unit as an animation loop interval', () => {
+  const parsed = core.parseDocument([
+    'Widget < UIWidget',
+    '  @animation post-effect-level: 0.25s 1 normal 0 1 linear ease-inout',
+    '    - 0',
+    '    - 1'
+  ].join('\n'));
+  const issues = core.validateSemantics(parsed, { elements: new Set(['Widget']) });
+  assert.equal(issues.some(item => item.code === 'lui-animation-loop-interval'), false);
+});
+
+test('recognizes Module and its lifecycle callbacks in LMOD files', () => {
+  const parsed = core.parseDocument([
+    'Module',
+    '  name: game_party',
+    '  @onLoad: init()',
+    '  @onUnload: |',
+    '    terminate()',
+    '    cleanup()'
+  ].join('\n'));
+  const issues = core.validateSemantics(parsed, { unknownElements: 'warning' });
+  assert.equal(issues.some(item => item.code === 'lui-root-syntax'), false);
+  assert.equal(issues.some(item => item.code === 'lui-unknown-command'), false);
+  assert.equal(issues.some(item => item.code === 'lui-unknown-element'), false);
+  assert.deepEqual(core.collectLuaExpressions(parsed).map(item => [item.tag, item.mode]), [
+    ['@onLoad', 'chunk'],
+    ['@onUnload', 'chunk']
+  ]);
+});
+
+test('accepts elements declared by another workspace LUI document', () => {
+  const declarations = core.collectLocalSymbols(core.parseDocument(
+    'PartyComboBox < TextComboBox\n  width: 150sp'));
+  const parsed = core.parseDocument('StatisticsTabPanel < Panel\n  PartyComboBox\n    id: optionsStatistics');
+  const issues = core.validateSemantics(parsed, {
+    elements: new Set(declarations.elements.map(item => item.name)),
+    unknownElements: 'warning'
+  });
+  assert.equal(issues.some(item => item.code === 'lui-unknown-element'), false);
 });
 
 test('accepts Lua-evaluated command tags', () => {
@@ -172,6 +262,15 @@ test('does not hide incomplete Lua functions with a synthetic end', () => {
   const eofMapping = luaEmbedding.closestMappingAtOrBefore(embedded, 99, 0);
   assert.equal(eofMapping.sourceLine, 1);
   assert.equal(eofMapping.expression.tag, 'text');
+});
+
+test('identifies only extension-owned LuaLS cache files for cleanup', () => {
+  const shadow = luaEmbedding.buildLuaVirtualDocument('Widget < UIWidget\n  !text: tr("Hi")');
+  const bindings = luaEmbedding.buildLuaBindingsDocument(new Map());
+  assert.equal(luaEmbedding.isGeneratedLuaCacheFile('panel-012345abcdef.lua', shadow.content), true);
+  assert.equal(luaEmbedding.isGeneratedLuaCacheFile('luna-ui-bindings.lua', bindings), true);
+  assert.equal(luaEmbedding.isGeneratedLuaCacheFile('my-script.lua', shadow.content), false);
+  assert.equal(luaEmbedding.isGeneratedLuaCacheFile('panel-012345abcdef.lua', '-- user file'), false);
 });
 
 test('replays ordered styles, @undef and game overrides', () => {
@@ -309,6 +408,26 @@ test('parses static Font Awesome references used by Luna UI', () => {
   });
   assert.equal(fontAwesomeUtils.parseFontAwesomeSource("'@FontAwesome-flat-0.8em-x58'").codepoint, 0x58);
   assert.equal(fontAwesomeUtils.parseFontAwesomeSource('@FontAwesome-flat-xf00d'), undefined);
+});
+
+test('builds the official Font Awesome search from a glyph name or codepoint', () => {
+  assert.equal(
+    assetActions.fontAwesomeSearchUrl({ glyphName: 'circle-play', hexadecimal: 'f144' }),
+    'https://fontawesome.com/search?q=circle-play'
+  );
+  assert.equal(
+    assetActions.fontAwesomeSearchUrl({ glyphName: 'uniF04B', hexadecimal: 'f04b' }),
+    'https://fontawesome.com/search?q=f04b'
+  );
+  assert.equal(fontAwesomeUtils.glyphName({
+    charToGlyph: () => ({ index: 12, name: 'play' })
+  }, 0xf04b), 'play');
+});
+
+test('recognizes image clipboard MIME types', () => {
+  assert.equal(assetActions.imageMimeType('/game/assets/icon.PNG'), 'image/png');
+  assert.equal(assetActions.imageMimeType('/game/assets/icon.svg'), 'image/svg+xml');
+  assert.equal(assetActions.imageMimeType('/game/assets/icon.bin'), undefined);
 });
 
 test('discovers Font Awesome below assets/fonts for common workspace layouts', () => {

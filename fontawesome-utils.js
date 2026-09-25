@@ -83,9 +83,16 @@ function glyphSvg(font, codepoint) {
   ].join('\n');
 }
 
+function glyphName(font, codepoint) {
+  const glyph = font.charToGlyph(String.fromCodePoint(codepoint));
+  if (!glyph || glyph.index === 0 || !glyph.name) return undefined;
+  return glyph.name;
+}
+
 module.exports = {
   automaticFontDirectories,
   fontFileScore,
+  glyphName,
   glyphSvg,
   isFontFile,
   parseFontAwesomeSource

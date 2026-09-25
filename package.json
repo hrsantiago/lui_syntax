@@ -2,7 +2,7 @@
   "name": "lui-language",
   "displayName": "LUI Language",
   "description": "Support for WGS LUI syntax with diagnostics, autocomplete, navigation and Lua integration.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "Pedrilsk",
   "license": "MIT",
   "repository": {
@@ -152,7 +152,7 @@
         "lunaUI.styleSources": {
           "type": "array",
           "default": [],
-          "description": "Ordered external style sources. When set, markup styles are loaded only from this list; Lua/C++ APIs are still indexed from the open workspace.",
+          "description": "Ordered style sources used for runtime load-order validation. Other LUI files in the open workspace remain indexed for autocomplete, diagnostics and navigation without affecting @undef or override order.",
           "items": {
             "anyOf": [
               {
@@ -183,6 +183,11 @@
                   "enabled": {
                     "type": "boolean",
                     "default": true
+                  },
+                  "scanCode": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Also scan Lua/C++ files below this source for external widget classes, native bindings and dynamic properties. This does not affect style load order."
                   }
                 }
               }
@@ -203,6 +208,11 @@
           "type": "boolean",
           "default": true,
           "description": "Keep static image and Font Awesome references highlighted in link-blue while preserving native hover and Ctrl+Click behavior."
+        },
+        "lunaUI.navigation.referenceHighlight.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight resolvable parent, prev, next and widget-id references in anchors.* values using the current VS Code theme link color."
         },
         "lunaUI.assets.automaticSearch.enabled": {
           "type": "boolean",
@@ -274,7 +284,7 @@
         "lunaUI.luaIntegration.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Delegate dynamic ! values and Lua-backed @slot/@slotRet/@field/@bind constructs to the installed Lua extension."
+          "description": "Enable every Lua/LuaLS integration feature, including shadow/meta cache generation, activation of the installed Lua extension, diagnostics, completion, hover, signatures and definitions. Disabling it removes files generated in .luna-ui-cache."
         },
         "lunaUI.luaIntegration.bindGlobalType": {
           "type": "string",

@@ -22,6 +22,8 @@ test('command keys start at indentation and outrank generic properties', () => {
     ['  @slot onClick: callback()', '@slot'],
     ['  @field showDrag: false', '@field'],
     ['    @bind self: e_panel', '@bind'],
+    ['  @onLoad: init()', '@onLoad'],
+    ['  @onUnload: terminate()', '@onUnload'],
     ['  @transition opacity: 0.2s', '@transition'],
     ['  !@animation rotation: params', '@animation']
   ];
@@ -52,6 +54,8 @@ test('multiline Lua commands preserve directive identity', () => {
   for (const line of [
     '  @slot onSetup: |',
     '    @field callback: |-',
+    '  @onLoad: |',
+    '  @onUnload: |-',
     '  !@transition opacity: |'
   ]) {
     const result = firstPattern('multiline', line);
@@ -85,11 +89,13 @@ test('ordinary text blocks are not embedded Lua', () => {
   assert.equal(firstPattern('multiline', '  @transition opacity: |-'), undefined);
 });
 
-test('@slot, @field and @bind values receive embedded Lua scopes', () => {
+test('@slot, @field, @bind and module lifecycle values receive embedded Lua scopes', () => {
   for (const line of [
     '  @slot onClick: togglePanel(self)',
     '  @field callback: function(self) return true end',
     '  @bind self: e_panel',
+    '  @onLoad: init()',
+    '  @onUnload: terminate()',
     '  *mobile @bind self: e_mobilePanel'
   ]) {
     const result = firstPattern('inline-lua', line);
@@ -97,4 +103,12 @@ test('@slot, @field and @bind values receive embedded Lua scopes', () => {
     assert.equal(result.pattern.contentName, 'meta.embedded.inline.lua');
   }
   assert.equal(firstPattern('inline-lua', '  @transition opacity: 200ms'), undefined);
+});
+
+test('Module receives a built-in root declaration scope', () => {
+  const declaration = firstPattern('declarations', 'Module');
+  assert.ok(declaration);
+  assert.equal(declaration.match.includes('Module'), true);
+  assert.ok(Object.values(declaration.pattern.captures)
+    .some(capture => capture.name === 'entity.name.type.luna-ui'));
 });
